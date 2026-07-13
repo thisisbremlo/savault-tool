@@ -1,0 +1,17 @@
+{
+  "name": "savault-content-tool",
+  "version": "1.0.0",
+  "description": "Local web app for capturing, editing, and publishing Savault directory entries (screenshots, OG images, CDN links, Notion fields).",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "install:browsers": "playwright install chromium"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "playwright": "^1.61.1",
+    "sharp": "^0.35.2"
+  }
+}
