@@ -1,169 +1,274 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Savault Content Tool</title>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="apple-touch-icon" href="/favicon.svg" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Savault Content Tool</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-<header class="topbar">
-  <img class="brand-logo" src="/assets/savault-logo-white.svg" alt="Savault" />
-  <span class="brand-sub">content tool</span>
-</header>
 
-<main class="wrap">
-
-  <div class="stepper" id="stepper">
-    <div class="stepper-segment active" data-step="1">
-      <div class="stepper-bar"></div>
-      <span class="stepper-label">Capture</span>
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="brand-wrapper">
+      <img class="brand-logo" src="/assets/savault-logo-white.svg" alt="Savault" />
+      <span class="brand-sub">Content Tool</span>
     </div>
-    <div class="stepper-segment" data-step="2">
-      <div class="stepper-bar"></div>
-      <span class="stepper-label">Review &amp; edit</span>
+
+    <!-- Mode Selector Tabs -->
+    <div class="top-tabs">
+      <button class="tab-btn active" id="tab-capture-mode">New Capture</button>
+      <button class="tab-btn" id="tab-fix-mode">Fix Entry</button>
     </div>
-    <div class="stepper-segment" data-step="3">
-      <div class="stepper-bar"></div>
-      <span class="stepper-label">Notion &amp; push</span>
-    </div>
-  </div>
+  </header>
 
-  <section class="panel" id="panel-capture">
-    <h2>Capture</h2>
-    <form id="capture-form" class="row">
-      <input id="url-input" type="text" placeholder="https://example.com" required />
-      <button type="submit" id="capture-btn">Capture</button>
-    </form>
-    <p class="hint" id="capture-status"></p>
-  </section>
+  <main class="wrap">
 
-  <section class="panel hidden" id="panel-review">
-    <h2>Review &amp; edit</h2>
-
-    <div class="previews">
-      <div class="preview-card">
-        <span class="preview-label">Thumbnail</span>
-        <img id="preview-thumbnail" alt="Thumbnail preview" />
-        <label class="replace-overlay">
-          <span class="replace-btn">Replace</span>
-          <input type="file" accept="image/*" data-type="thumbnail" class="replace-input" />
-        </label>
+    <!-- Workflow Stepper -->
+    <div class="stepper" id="stepper">
+      <div class="stepper-segment active" data-step="1">
+        <div class="stepper-header">
+          <span class="stepper-num">1</span>
+          <span class="stepper-label">Capture Site</span>
+        </div>
+        <div class="stepper-bar"></div>
       </div>
-
-      <div class="preview-card">
-        <span class="preview-label">Fullpage</span>
-        <img id="preview-fullpage" alt="Fullpage preview" />
-        <label class="replace-overlay">
-          <span class="replace-btn">Replace</span>
-          <input type="file" accept="image/*" data-type="fullpage" class="replace-input" />
-        </label>
+      <div class="stepper-segment" data-step="2">
+        <div class="stepper-header">
+          <span class="stepper-num">2</span>
+          <span class="stepper-label">Review &amp; Edit</span>
+        </div>
+        <div class="stepper-bar"></div>
       </div>
-
-      <div class="preview-card">
-        <span class="preview-label">OG image</span>
-        <img id="preview-og" alt="OG image preview" />
-        <label class="replace-overlay">
-          <span class="replace-btn">Replace</span>
-          <input type="file" accept="image/*" data-type="og" class="replace-input" />
-        </label>
-      </div>
-    </div>
-    <p class="hint" id="og-missing-hint">No OG image found on this page. Upload one manually if needed.</p>
-
-    <div class="fields">
-      <label>Title
-        <input id="field-title" type="text" />
-      </label>
-      <label>Slug
-        <input id="field-slug" type="text" />
-      </label>
-      <label>Hover description
-        <input id="field-hover" type="text" />
-      </label>
-      <label>Meta description
-        <textarea id="field-meta" rows="2"></textarea>
-      </label>
-      <label>Category
-        <select id="field-category"><option value="">Loading…</option></select>
-        <input id="field-category-custom" type="text" placeholder="Neue Kategorie eingeben" class="hidden custom-field-input" />
-      </label>
-      <label>Subcategory
-        <select id="field-subcategory"><option value="">Loading…</option></select>
-        <input id="field-subcategory-custom" type="text" placeholder="Neue Subcategory eingeben" class="hidden custom-field-input" />
-      </label>
-      <label>Pricing type
-        <input id="field-pricing" type="text" placeholder="Free / Freemium / Paid" />
-      </label>
-      <label class="checkbox-row">
-        <input id="field-is-new" type="checkbox" />
-        Is new
-      </label>
-      <label class="checkbox-row">
-        <input id="field-is-sponsored" type="checkbox" />
-        Is sponsored
-      </label>
-    </div>
-
-    <button id="save-btn">Optimize &amp; Save to savault-assets</button>
-    <p class="hint" id="save-status"></p>
-  </section>
-
-  <section class="panel hidden" id="panel-notion">
-    <h2>Notion fields</h2>
-    <div id="notion-fields" class="notion-fields"></div>
-    <button id="copy-all-btn">Copy all as block</button>
-    <div class="row" id="notion-push-row">
-      <button id="notion-push-btn">Add to Notion</button>
-      <button id="push-btn">Push assets to GitHub</button>
-    </div>
-    <p class="hint" id="notion-push-status"></p>
-    <pre class="log" id="push-log"></pre>
-  </section>
-
-  <section class="panel" id="panel-fix">
-    <h2>Fix existing entry</h2>
-    <p class="hint">
-      Für Einträge, bei denen der automatische Screenshot durch Cookie-Banner
-      o.ä. nicht gut aussieht. Ersetzt Thumbnail/Fullpage unter demselben
-      Dateinamen — der CDN-Link ändert sich nicht.
-    </p>
-
-    <select id="fix-slug-select"><option value="">Lädt bestehende Einträge…</option></select>
-
-    <div class="previews hidden" id="fix-previews">
-      <div class="preview-card">
-        <span class="preview-label">Thumbnail</span>
-        <img id="fix-preview-thumbnail" alt="Current thumbnail" />
-        <label class="replace-overlay">
-          <span class="replace-btn">Replace</span>
-          <input type="file" accept="image/*" data-type="thumbnail" class="replace-input fix-replace-input" />
-        </label>
-      </div>
-
-      <div class="preview-card">
-        <span class="preview-label">Fullpage</span>
-        <img id="fix-preview-fullpage" alt="Current fullpage" />
-        <label class="replace-overlay">
-          <span class="replace-btn">Replace</span>
-          <input type="file" accept="image/*" data-type="fullpage" class="replace-input fix-replace-input" />
-        </label>
+      <div class="stepper-segment" data-step="3">
+        <div class="stepper-header">
+          <span class="stepper-num">3</span>
+          <span class="stepper-label">Notion &amp; Publish</span>
+        </div>
+        <div class="stepper-bar"></div>
       </div>
     </div>
 
-    <div class="row hidden" id="fix-push-row">
-      <button id="fix-push-btn">Push &amp; Purge</button>
-    </div>
-    <pre class="log hidden" id="fix-log"></pre>
-  </section>
+    <!-- Step 1: Capture Section -->
+    <section class="panel" id="panel-capture">
+      <div class="panel-header">
+        <div>
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Capture Website
+          </h2>
+          <div class="panel-subtitle">Enter a website URL to extract screenshots, colors, fonts, and meta description</div>
+        </div>
+      </div>
 
-</main>
+      <form id="capture-form">
+        <div class="input-group">
+          <input id="url-input" type="text" placeholder="https://example.com" required autocomplete="off" />
+          <button type="submit" id="capture-btn" class="input-group-btn">
+            <span id="capture-btn-text">Capture</span>
+          </button>
+        </div>
+      </form>
+      <div id="capture-status"></div>
+    </section>
 
-<script src="/app.js"></script>
+    <!-- Step 2: Review & Edit Section -->
+    <section class="panel hidden" id="panel-review">
+      <div class="panel-header">
+        <div>
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Review &amp; Edit Details
+          </h2>
+          <div class="panel-subtitle">Verify generated screenshots and refine showcase properties</div>
+        </div>
+      </div>
+
+      <!-- Preview Image Cards -->
+      <div class="previews">
+        <div class="preview-card">
+          <div class="preview-header">
+            <span class="preview-title">Thumbnail</span>
+            <span class="preview-tag">Above fold</span>
+          </div>
+          <div class="preview-image-container">
+            <img id="preview-thumbnail" alt="Thumbnail preview" />
+            <label class="replace-overlay">
+              <span class="replace-btn">Replace File</span>
+              <input type="file" accept="image/*" data-type="thumbnail" class="replace-input" />
+            </label>
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="preview-header">
+            <span class="preview-title">Fullpage</span>
+            <span class="preview-tag">Full height</span>
+          </div>
+          <div class="preview-image-container">
+            <img id="preview-fullpage" alt="Fullpage preview" />
+            <label class="replace-overlay">
+              <span class="replace-btn">Replace File</span>
+              <input type="file" accept="image/*" data-type="fullpage" class="replace-input" />
+            </label>
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="preview-header">
+            <span class="preview-title">OG Image</span>
+            <span class="preview-tag">Social share</span>
+          </div>
+          <div class="preview-image-container">
+            <img id="preview-og" alt="OG image preview" />
+            <label class="replace-overlay">
+              <span class="replace-btn">Replace File</span>
+              <input type="file" accept="image/*" data-type="og" class="replace-input" />
+            </label>
+          </div>
+        </div>
+      </div>
+      <p class="hint" id="og-missing-hint" style="display: none;">⚠️ No OG image found automatically. Click hover above to upload one manually if needed.</p>
+
+      <!-- Fields Form Grid -->
+      <div class="fields">
+        <label>
+          Title
+          <input id="field-title" type="text" placeholder="e.g. Acme Website" />
+        </label>
+
+        <label>
+          Slug
+          <input id="field-slug" type="text" placeholder="e.g. acme-website" />
+        </label>
+
+        <label>
+          Hover description
+          <input id="field-hover" type="text" placeholder="Short preview phrase" />
+        </label>
+
+        <label>
+          Pricing type
+          <input id="field-pricing" type="text" placeholder="Free / Freemium / Paid" />
+        </label>
+
+        <label>
+          Category
+          <select id="field-category"><option value="">Loading categories…</option></select>
+          <input id="field-category-custom" type="text" placeholder="Type custom category…" class="hidden custom-field-input" />
+        </label>
+
+        <label>
+          Subcategory
+          <select id="field-subcategory"><option value="">Loading subcategories…</option></select>
+          <input id="field-subcategory-custom" type="text" placeholder="Type custom subcategory…" class="hidden custom-field-input" />
+        </label>
+
+        <label>
+          Meta description
+          <textarea id="field-meta" rows="3" placeholder="Page summary text"></textarea>
+        </label>
+
+        <div class="checkbox-group">
+          <label class="checkbox-row">
+            <input id="field-is-new" type="checkbox" />
+            Is New Entry
+          </label>
+          <label class="checkbox-row">
+            <input id="field-is-sponsored" type="checkbox" />
+            Is Sponsored
+          </label>
+        </div>
+      </div>
+
+      <button id="save-btn" class="btn btn-full">Optimize &amp; Save to Assets</button>
+      <div id="save-status"></div>
+    </section>
+
+    <!-- Step 3: Notion & Push Section -->
+    <section class="panel hidden" id="panel-notion">
+      <div class="panel-header">
+        <div>
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Notion &amp; Deployment
+          </h2>
+          <div class="panel-subtitle">Publish entry to Notion database and push WebP screenshots to GitHub CDN</div>
+        </div>
+      </div>
+
+      <div id="notion-fields" class="notion-fields"></div>
+
+      <div class="actions-row">
+        <button id="copy-all-btn" class="btn btn-secondary">Copy All Fields</button>
+        <button id="notion-push-btn" class="btn">Add to Notion</button>
+        <button id="push-btn" class="btn btn-secondary">Push Assets to GitHub</button>
+      </div>
+
+      <div id="notion-push-status"></div>
+      <pre class="log hidden" id="push-log"></pre>
+    </section>
+
+    <!-- Fix Existing Entry Panel -->
+    <section class="panel hidden" id="panel-fix">
+      <div class="panel-header">
+        <div>
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Fix Existing Entry
+          </h2>
+          <div class="panel-subtitle">Replace screenshots for existing showcases under the exact same CDN URL</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Select showcase entry:</label>
+        <select id="fix-slug-select"><option value="">Loading entries list…</option></select>
+      </div>
+
+      <div class="previews hidden" id="fix-previews">
+        <div class="preview-card">
+          <div class="preview-header">
+            <span class="preview-title">Thumbnail</span>
+            <span class="preview-tag">Current WebP</span>
+          </div>
+          <div class="preview-image-container">
+            <img id="fix-preview-thumbnail" alt="Current thumbnail" />
+            <label class="replace-overlay">
+              <span class="replace-btn">Replace File</span>
+              <input type="file" accept="image/*" data-type="thumbnail" class="replace-input fix-replace-input" />
+            </label>
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="preview-header">
+            <span class="preview-title">Fullpage</span>
+            <span class="preview-tag">Current WebP</span>
+          </div>
+          <div class="preview-image-container">
+            <img id="fix-preview-fullpage" alt="Current fullpage" />
+            <label class="replace-overlay">
+              <span class="replace-btn">Replace File</span>
+              <input type="file" accept="image/*" data-type="fullpage" class="replace-input fix-replace-input" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-row hidden" id="fix-push-row" style="margin-top: 20px;">
+        <button id="fix-push-btn" class="btn">Push &amp; Purge CDN Cache</button>
+      </div>
+      <pre class="log hidden" id="fix-log"></pre>
+    </section>
+
+  </main>
+
+  <script src="/app.js"></script>
 </body>
 </html>
