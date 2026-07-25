@@ -91,49 +91,82 @@
 
       <!-- Preview Image Cards -->
       <div class="previews">
-        <div class="preview-card">
+        <div class="preview-card" id="card-thumbnail">
           <div class="preview-header">
             <span class="preview-title">Thumbnail</span>
             <span class="preview-tag">Above fold</span>
           </div>
           <div class="preview-image-container">
+            <div class="preview-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>No Thumbnail</span>
+            </div>
             <img id="preview-thumbnail" alt="Thumbnail preview" />
-            <label class="replace-overlay">
-              <span class="replace-btn">Replace File</span>
-              <input type="file" accept="image/*" data-type="thumbnail" class="replace-input" />
-            </label>
+            <div class="replace-overlay">
+              <button class="overlay-btn btn-view-image" data-target="preview-thumbnail" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View
+              </button>
+              <label class="overlay-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Replace
+                <input type="file" accept="image/*" data-type="thumbnail" class="replace-input" />
+              </label>
+            </div>
           </div>
         </div>
 
-        <div class="preview-card">
+        <div class="preview-card" id="card-fullpage">
           <div class="preview-header">
             <span class="preview-title">Fullpage</span>
             <span class="preview-tag">Full height</span>
           </div>
           <div class="preview-image-container">
+            <div class="preview-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>No Fullpage</span>
+            </div>
             <img id="preview-fullpage" alt="Fullpage preview" />
-            <label class="replace-overlay">
-              <span class="replace-btn">Replace File</span>
-              <input type="file" accept="image/*" data-type="fullpage" class="replace-input" />
-            </label>
+            <div class="replace-overlay">
+              <button class="overlay-btn btn-view-image" data-target="preview-fullpage" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View
+              </button>
+              <label class="overlay-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Replace
+                <input type="file" accept="image/*" data-type="fullpage" class="replace-input" />
+              </label>
+            </div>
           </div>
         </div>
 
-        <div class="preview-card">
+        <div class="preview-card" id="card-og">
           <div class="preview-header">
             <span class="preview-title">OG Image</span>
             <span class="preview-tag">Social share</span>
           </div>
           <div class="preview-image-container">
+            <div class="preview-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>No OG Image</span>
+            </div>
             <img id="preview-og" alt="OG image preview" />
-            <label class="replace-overlay">
-              <span class="replace-btn">Replace File</span>
-              <input type="file" accept="image/*" data-type="og" class="replace-input" />
-            </label>
+            <div class="replace-overlay">
+              <button class="overlay-btn btn-view-image" data-target="preview-og" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View
+              </button>
+              <label class="overlay-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Replace
+                <input type="file" accept="image/*" data-type="og" class="replace-input" />
+              </label>
+            </div>
           </div>
         </div>
       </div>
-      <p class="hint" id="og-missing-hint" style="display: none;">⚠️ No OG image found automatically. Click hover above to upload one manually if needed.</p>
+      <p class="hint" id="og-missing-hint" style="display: none;">⚠️ No OG image found automatically. Hover card above to upload one manually.</p>
 
       <!-- Fields Form Grid -->
       <div class="fields">
@@ -231,32 +264,54 @@
         <select id="fix-slug-select"><option value="">Loading entries list…</option></select>
       </div>
 
-      <div class="previews hidden" id="fix-previews">
-        <div class="preview-card">
+      <div class="previews" id="fix-previews">
+        <div class="preview-card" id="fix-card-thumbnail">
           <div class="preview-header">
             <span class="preview-title">Thumbnail</span>
             <span class="preview-tag">Current WebP</span>
           </div>
           <div class="preview-image-container">
+            <div class="preview-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>No Entry Selected</span>
+            </div>
             <img id="fix-preview-thumbnail" alt="Current thumbnail" />
-            <label class="replace-overlay">
-              <span class="replace-btn">Replace File</span>
-              <input type="file" accept="image/*" data-type="thumbnail" class="replace-input fix-replace-input" />
-            </label>
+            <div class="replace-overlay">
+              <button class="overlay-btn btn-view-image" data-target="fix-preview-thumbnail" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View
+              </button>
+              <label class="overlay-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Replace
+                <input type="file" accept="image/*" data-type="thumbnail" class="replace-input fix-replace-input" />
+              </label>
+            </div>
           </div>
         </div>
 
-        <div class="preview-card">
+        <div class="preview-card" id="fix-card-fullpage">
           <div class="preview-header">
             <span class="preview-title">Fullpage</span>
             <span class="preview-tag">Current WebP</span>
           </div>
           <div class="preview-image-container">
+            <div class="preview-placeholder">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>No Entry Selected</span>
+            </div>
             <img id="fix-preview-fullpage" alt="Current fullpage" />
-            <label class="replace-overlay">
-              <span class="replace-btn">Replace File</span>
-              <input type="file" accept="image/*" data-type="fullpage" class="replace-input fix-replace-input" />
-            </label>
+            <div class="replace-overlay">
+              <button class="overlay-btn btn-view-image" data-target="fix-preview-fullpage" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View
+              </button>
+              <label class="overlay-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Replace
+                <input type="file" accept="image/*" data-type="fullpage" class="replace-input fix-replace-input" />
+              </label>
+            </div>
           </div>
         </div>
       </div>
