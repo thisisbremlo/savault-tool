@@ -58,6 +58,30 @@ function showStatus(element, message, type = "info", loading = false) {
   element.innerHTML = `<div class="status-badge ${type}">${spinnerHtml} <span>${message}</span></div>`
 }
 
+function updateLog(logEl, content) {
+  if (!content || !content.trim()) {
+    logEl.textContent = ""
+    logEl.classList.add("hidden")
+  } else {
+    logEl.textContent = content
+    logEl.classList.remove("hidden")
+  }
+}
+
+// --- View Full Resolution Image Handler ---
+document.addEventListener("click", (e) => {
+  const viewBtn = e.target.closest(".btn-view-image")
+  if (viewBtn) {
+    const targetId = viewBtn.dataset.target
+    const imgEl = document.getElementById(targetId)
+    if (imgEl && imgEl.src && imgEl.src !== window.location.href) {
+      window.open(imgEl.src, "_blank")
+    } else {
+      alert("No image available to view yet.")
+    }
+  }
+})
+
 loadNotionOptions()
 
 async function loadNotionOptions() {
@@ -163,6 +187,7 @@ captureForm.addEventListener("submit", async (e) => {
   
   panelReview.classList.add("hidden")
   panelNotion.classList.add("hidden")
+  updateLog(pushLog, "")
   setStep(1)
 
   try {
@@ -301,8 +326,8 @@ function renderNotionFields(fields) {
     btn.addEventListener("click", () => {
       navigator.clipboard.writeText(field.value || "")
       btn.textContent = "✓ Copied"
-      btn.style.background = "#E0F2FE"
-      btn.style.color = "#0369A1"
+      btn.style.background = "#F1F5F9"
+      btn.style.color = "#0F172A"
       setTimeout(() => {
         btn.textContent = "Copy"
         btn.style.background = ""
@@ -325,8 +350,7 @@ copyAllBtn.addEventListener("click", () => {
 pushBtn.addEventListener("click", async () => {
   if (!sessionId) return
   pushBtn.disabled = true
-  pushLog.classList.remove("hidden")
-  pushLog.textContent = "Pushing WebP assets to GitHub repository..."
+  updateLog(pushLog, "Pushing WebP assets to GitHub repository...")
 
   try {
     const res = await fetch("/api/push", {
@@ -335,9 +359,9 @@ pushBtn.addEventListener("click", async () => {
       body: JSON.stringify({ sessionId }),
     })
     const data = await res.json()
-    pushLog.textContent = (data.log || []).join("\n") + "\n\n" + (data.message || "")
+    updateLog(pushLog, (data.log || []).join("\n") + "\n\n" + (data.message || ""))
   } catch (err) {
-    pushLog.textContent = `Error: ${err.message}`
+    updateLog(pushLog, `Error: ${err.message}`)
   } finally {
     pushBtn.disabled = false
   }
@@ -371,7 +395,6 @@ notionPushBtn.addEventListener("click", async () => {
 
 // --- Fix Existing Entry Logic ---
 const fixSlugSelect = document.getElementById("fix-slug-select")
-const fixPreviewsEl = document.getElementById("fix-previews")
 const fixPreviewThumb = document.getElementById("fix-preview-thumbnail")
 const fixPreviewFull = document.getElementById("fix-preview-fullpage")
 const fixPushRow = document.getElementById("fix-push-row")
@@ -401,8 +424,7 @@ async function loadFixSlugs() {
       fixSlugSelect.appendChild(option)
     }
   } catch (err) {
-    fixLog.classList.remove("hidden")
-    fixLog.textContent = `Error: ${err.message}`
+    updateLog(fixLog, `Error: ${err.message}`)
   }
 }
 
@@ -410,9 +432,8 @@ fixSlugSelect.addEventListener("change", () => {
   currentFixSlug = fixSlugSelect.value || null
 
   if (!currentFixSlug) {
-    fixPreviewsEl.classList.add("hidden")
     fixPushRow.classList.add("hidden")
-    fixLog.classList.add("hidden")
+    updateLog(fixLog, "")
     fixPreviewThumb.removeAttribute("src")
     fixPreviewFull.removeAttribute("src")
     return
@@ -421,10 +442,8 @@ fixSlugSelect.addEventListener("change", () => {
   const t = Date.now()
   fixPreviewThumb.src = `/assets-preview/thumbnails/${currentFixSlug}-thumbnail.webp?t=${t}`
   fixPreviewFull.src = `/assets-preview/fullpages/${currentFixSlug}-fullpage.webp?t=${t}`
-  fixPreviewsEl.classList.remove("hidden")
   fixPushRow.classList.remove("hidden")
-  fixLog.classList.add("hidden")
-  fixLog.textContent = ""
+  updateLog(fixLog, "")
 })
 
 document.querySelectorAll(".fix-replace-input").forEach((input) => {
@@ -441,18 +460,17 @@ document.querySelectorAll(".fix-replace-input").forEach((input) => {
     formData.append("slug", currentFixSlug)
     formData.append("type", type)
 
-    fixLog.classList.remove("hidden")
-    fixLog.textContent = `Optimizing replaced ${type}...`
+    updateLog(fixLog, `Optimizing replaced ${type}...`)
     const res = await fetch("/api/fix/replace", { method: "POST", body: formData })
     const data = await res.json()
     if (!res.ok) {
-      fixLog.textContent = `Error: ${data.error}`
+      updateLog(fixLog, `Error: ${data.error}`)
       return
     }
 
     if (type === "thumbnail") fixPreviewThumb.src = data.previewUrl
     if (type === "fullpage") fixPreviewFull.src = data.previewUrl
-    fixLog.textContent = `${type} image replaced locally! Click "Push & Purge CDN Cache" to publish.`
+    updateLog(fixLog, `${type} image replaced locally! Click "Push & Purge CDN Cache" to publish.`)
   })
 })
 
@@ -462,8 +480,7 @@ fixPushBtn.addEventListener("click", async () => {
     return
   }
   fixPushBtn.disabled = true
-  fixLog.classList.remove("hidden")
-  fixLog.textContent = "Pushing assets to GitHub and purging jsDelivr CDN cache..."
+  updateLog(fixLog, "Pushing assets to GitHub and purging jsDelivr CDN cache...")
 
   try {
     const res = await fetch("/api/fix/push", {
@@ -478,9 +495,9 @@ fixPushBtn.addEventListener("click", async () => {
       .map((p) => `Purge ${p.url.split("/").pop()} -> ${p.ok ? "Success (200)" : "Failed"}`)
       .join("\n")
 
-    fixLog.textContent = `${gitLog}\n\n${data.message || ""}\n\n${purgeLog}`
+    updateLog(fixLog, `${gitLog}\n\n${data.message || ""}\n\n${purgeLog}`)
   } catch (err) {
-    fixLog.textContent = `Error: ${err.message}`
+    updateLog(fixLog, `Error: ${err.message}`)
   } finally {
     fixPushBtn.disabled = false
   }
