@@ -1,10 +1,61 @@
 let sessionId = null
 
 const stepperSegments = document.querySelectorAll(".stepper-segment")
+const stepperContainer = document.getElementById("stepper")
+
 function setStep(n) {
   stepperSegments.forEach((seg) => {
-    if (Number(seg.dataset.step) <= n) seg.classList.add("active")
+    const stepNum = Number(seg.dataset.step)
+    if (stepNum <= n) {
+      seg.classList.add("active")
+    } else {
+      seg.classList.remove("active")
+    }
   })
+}
+
+// --- Topbar Tab Navigation ---
+const tabCaptureMode = document.getElementById("tab-capture-mode")
+const tabFixMode = document.getElementById("tab-fix-mode")
+const panelCapture = document.getElementById("panel-capture")
+const panelReview = document.getElementById("panel-review")
+const panelNotion = document.getElementById("panel-notion")
+const panelFix = document.getElementById("panel-fix")
+
+tabCaptureMode.addEventListener("click", () => {
+  tabCaptureMode.classList.add("active")
+  tabFixMode.classList.remove("active")
+  
+  stepperContainer.classList.remove("hidden")
+  panelCapture.classList.remove("hidden")
+  panelFix.classList.add("hidden")
+  
+  if (sessionId) {
+    panelReview.classList.remove("hidden")
+    if (lastFields.length > 0) panelNotion.classList.remove("hidden")
+  }
+})
+
+tabFixMode.addEventListener("click", () => {
+  tabFixMode.classList.add("active")
+  tabCaptureMode.classList.remove("active")
+  
+  stepperContainer.classList.add("hidden")
+  panelCapture.classList.add("hidden")
+  panelReview.classList.add("hidden")
+  panelNotion.classList.add("hidden")
+  panelFix.classList.remove("hidden")
+})
+
+function showStatus(element, message, type = "info", loading = false) {
+  if (!message) {
+    element.innerHTML = ""
+    return
+  }
+  const spinnerHtml = loading
+    ? `<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`
+    : ""
+  element.innerHTML = `<div class="status-badge ${type}">${spinnerHtml} <span>${message}</span></div>`
 }
 
 loadNotionOptions()
@@ -21,8 +72,6 @@ async function loadNotionOptions() {
     fillSelect(categorySelect, data.category)
     fillSelect(subcategorySelect, data.subcategory)
   } catch (err) {
-    // Fall back to a plain empty option so the form still works
-    // even if Notion isn't reachable/configured yet.
     fillSelect(categorySelect, [])
     fillSelect(subcategorySelect, [])
     console.warn("Notion options:", err.message)
@@ -33,7 +82,7 @@ function fillSelect(selectEl, options) {
   selectEl.innerHTML = ""
   const blank = document.createElement("option")
   blank.value = ""
-  blank.textContent = options.length ? "— select —" : "— none in Notion —"
+  blank.textContent = options.length ? "— Select Option —" : "— None configured in Notion —"
   selectEl.appendChild(blank)
 
   for (const name of options) {
@@ -45,7 +94,7 @@ function fillSelect(selectEl, options) {
 
   const customOption = document.createElement("option")
   customOption.value = "__custom__"
-  customOption.textContent = "Sonstiges…"
+  customOption.textContent = "Custom / Other…"
   selectEl.appendChild(customOption)
 }
 
@@ -67,8 +116,6 @@ function setupCustomSelectToggle(selectId, customInputId) {
 setupCustomSelectToggle("field-category", "field-category-custom")
 setupCustomSelectToggle("field-subcategory", "field-subcategory-custom")
 
-// Returns the select's chosen value, or the typed custom value if
-// "Sonstiges…" was picked.
 function selectOrCustomValue(selectId, customInputId) {
   const select = document.getElementById(selectId)
   const customInput = document.getElementById(customInputId)
@@ -78,10 +125,8 @@ function selectOrCustomValue(selectId, customInputId) {
 const captureForm = document.getElementById("capture-form")
 const urlInput = document.getElementById("url-input")
 const captureBtn = document.getElementById("capture-btn")
+const captureBtnText = document.getElementById("capture-btn-text")
 const captureStatus = document.getElementById("capture-status")
-
-const panelReview = document.getElementById("panel-review")
-const panelNotion = document.getElementById("panel-notion")
 
 const previewThumb = document.getElementById("preview-thumbnail")
 const previewFull = document.getElementById("preview-fullpage")
@@ -113,10 +158,11 @@ let lastFields = []
 captureForm.addEventListener("submit", async (e) => {
   e.preventDefault()
   captureBtn.disabled = true
-  captureStatus.textContent = "Capturing… this can take up to a minute."
+  captureBtnText.textContent = "Capturing…"
+  showStatus(captureStatus, "Capturing website & analyzing design... this may take 15–30 seconds.", "info", true)
+  
   panelReview.classList.add("hidden")
   panelNotion.classList.add("hidden")
-  stepperSegments.forEach((seg) => seg.classList.remove("active"))
   setStep(1)
 
   try {
@@ -155,16 +201,19 @@ captureForm.addEventListener("submit", async (e) => {
       ogMissingHint.style.display = "block"
     }
 
-    captureStatus.textContent = data.error
-      ? `Captured with a warning: ${data.error}`
-      : "Captured. Review below before saving."
+    if (data.error) {
+      showStatus(captureStatus, `Captured with warning: ${data.error}`, "warning")
+    } else {
+      showStatus(captureStatus, "Website captured successfully! Review details below.", "success")
+    }
 
     panelReview.classList.remove("hidden")
     setStep(2)
   } catch (err) {
-    captureStatus.textContent = `Error: ${err.message}`
+    showStatus(captureStatus, `Error: ${err.message}`, "warning")
   } finally {
     captureBtn.disabled = false
+    captureBtnText.textContent = "Capture"
   }
 })
 
@@ -198,7 +247,7 @@ document.querySelectorAll("#panel-review .replace-input").forEach((input) => {
 saveBtn.addEventListener("click", async () => {
   if (!sessionId) return
   saveBtn.disabled = true
-  saveStatus.textContent = "Optimizing and copying into savault-assets…"
+  showStatus(saveStatus, "Optimizing images with Sharp & copying to savault-assets...", "info", true)
 
   try {
     const res = await fetch("/api/save", {
@@ -220,13 +269,13 @@ saveBtn.addEventListener("click", async () => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || "Save failed.")
 
-    saveStatus.textContent = `Saved as "${data.slug}".`
+    showStatus(saveStatus, `Assets saved under slug "${data.slug}"!`, "success")
     lastFields = data.fields
     renderNotionFields(data.fields)
     panelNotion.classList.remove("hidden")
     setStep(3)
   } catch (err) {
-    saveStatus.textContent = `Error: ${err.message}`
+    showStatus(saveStatus, `Error: ${err.message}`, "warning")
   } finally {
     saveBtn.disabled = false
   }
@@ -251,8 +300,14 @@ function renderNotionFields(fields) {
     btn.textContent = "Copy"
     btn.addEventListener("click", () => {
       navigator.clipboard.writeText(field.value || "")
-      btn.textContent = "Copied"
-      setTimeout(() => (btn.textContent = "Copy"), 1200)
+      btn.textContent = "✓ Copied"
+      btn.style.background = "#E0F2FE"
+      btn.style.color = "#0369A1"
+      setTimeout(() => {
+        btn.textContent = "Copy"
+        btn.style.background = ""
+        btn.style.color = ""
+      }, 1200)
     })
 
     row.append(label, value, btn)
@@ -263,14 +318,15 @@ function renderNotionFields(fields) {
 copyAllBtn.addEventListener("click", () => {
   const block = lastFields.map((f) => `${f.label}: ${f.value}`).join("\n")
   navigator.clipboard.writeText(block)
-  copyAllBtn.textContent = "Copied"
-  setTimeout(() => (copyAllBtn.textContent = "Copy all as block"), 1200)
+  copyAllBtn.textContent = "✓ All Copied"
+  setTimeout(() => (copyAllBtn.textContent = "Copy All Fields"), 1500)
 })
 
 pushBtn.addEventListener("click", async () => {
   if (!sessionId) return
   pushBtn.disabled = true
-  pushLog.textContent = "Pushing…"
+  pushLog.classList.remove("hidden")
+  pushLog.textContent = "Pushing WebP assets to GitHub repository..."
 
   try {
     const res = await fetch("/api/push", {
@@ -287,11 +343,10 @@ pushBtn.addEventListener("click", async () => {
   }
 })
 
-
 notionPushBtn.addEventListener("click", async () => {
   if (!lastFields.length) return
   notionPushBtn.disabled = true
-  notionPushStatus.textContent = "Adding to Notion…"
+  showStatus(notionPushStatus, "Syncing entry properties with Notion API...", "info", true)
 
   try {
     const res = await fetch("/api/notion/push", {
@@ -302,20 +357,19 @@ notionPushBtn.addEventListener("click", async () => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || "Failed to add to Notion.")
 
-    let message = "Added to Notion."
+    let message = "Page successfully created in Notion!"
     if (data.unmatched && data.unmatched.length > 0) {
-      message += ` (No matching property for: ${data.unmatched.join(", ")})`
+      message += ` (Skipped unmapped properties: ${data.unmatched.join(", ")})`
     }
-    notionPushStatus.textContent = message
+    showStatus(notionPushStatus, message, "success")
   } catch (err) {
-    notionPushStatus.textContent = `Error: ${err.message}`
+    showStatus(notionPushStatus, `Error: ${err.message}`, "warning")
   } finally {
     notionPushBtn.disabled = false
   }
 })
 
-// --- Fix existing entry ------------------------------------------------------
-
+// --- Fix Existing Entry Logic ---
 const fixSlugSelect = document.getElementById("fix-slug-select")
 const fixPreviewsEl = document.getElementById("fix-previews")
 const fixPreviewThumb = document.getElementById("fix-preview-thumbnail")
@@ -337,7 +391,7 @@ async function loadFixSlugs() {
     fixSlugSelect.innerHTML = ""
     const blank = document.createElement("option")
     blank.value = ""
-    blank.textContent = data.slugs.length ? "— Eintrag wählen —" : "— keine Einträge gefunden —"
+    blank.textContent = data.slugs.length ? "— Select an existing entry —" : "— No entries found —"
     fixSlugSelect.appendChild(blank)
 
     for (const slug of data.slugs) {
@@ -347,6 +401,7 @@ async function loadFixSlugs() {
       fixSlugSelect.appendChild(option)
     }
   } catch (err) {
+    fixLog.classList.remove("hidden")
     fixLog.textContent = `Error: ${err.message}`
   }
 }
@@ -376,7 +431,7 @@ document.querySelectorAll(".fix-replace-input").forEach((input) => {
   input.addEventListener("change", async (e) => {
     const file = e.target.files[0]
     if (!file || !currentFixSlug) {
-      if (!currentFixSlug) alert("Erst einen Eintrag im Dropdown auswählen.")
+      if (!currentFixSlug) alert("Please select an entry in the dropdown first.")
       return
     }
 
@@ -387,7 +442,7 @@ document.querySelectorAll(".fix-replace-input").forEach((input) => {
     formData.append("type", type)
 
     fixLog.classList.remove("hidden")
-    fixLog.textContent = `Optimizing ${type}…`
+    fixLog.textContent = `Optimizing replaced ${type}...`
     const res = await fetch("/api/fix/replace", { method: "POST", body: formData })
     const data = await res.json()
     if (!res.ok) {
@@ -397,18 +452,18 @@ document.querySelectorAll(".fix-replace-input").forEach((input) => {
 
     if (type === "thumbnail") fixPreviewThumb.src = data.previewUrl
     if (type === "fullpage") fixPreviewFull.src = data.previewUrl
-    fixLog.textContent = `${type} replaced locally. Click "Push & Purge" to publish.`
+    fixLog.textContent = `${type} image replaced locally! Click "Push & Purge CDN Cache" to publish.`
   })
 })
 
 fixPushBtn.addEventListener("click", async () => {
   if (!currentFixSlug) {
-    alert("Erst einen Eintrag im Dropdown auswählen.")
+    alert("Please select an entry in the dropdown first.")
     return
   }
   fixPushBtn.disabled = true
   fixLog.classList.remove("hidden")
-  fixLog.textContent = "Pushing and purging…"
+  fixLog.textContent = "Pushing assets to GitHub and purging jsDelivr CDN cache..."
 
   try {
     const res = await fetch("/api/fix/push", {
@@ -420,7 +475,7 @@ fixPushBtn.addEventListener("click", async () => {
 
     const gitLog = (data.log || []).join("\n")
     const purgeLog = (data.purge || [])
-      .map((p) => `purge ${p.url.split("/").pop()} -> ${p.ok ? "ok" : "failed"}`)
+      .map((p) => `Purge ${p.url.split("/").pop()} -> ${p.ok ? "Success (200)" : "Failed"}`)
       .join("\n")
 
     fixLog.textContent = `${gitLog}\n\n${data.message || ""}\n\n${purgeLog}`
