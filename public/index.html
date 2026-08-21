@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +8,17 @@
   <link rel="apple-touch-icon" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    // Apply theme before first paint to avoid a flash of the wrong theme.
+    (() => {
+      try {
+        const saved = localStorage.getItem("savault-theme")
+        const theme = saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        document.documentElement.dataset.theme = theme
+      } catch {}
+    })()
+  </script>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -17,41 +27,63 @@
   <header class="topbar">
     <div class="brand-wrapper">
       <img class="brand-logo" src="/assets/savault-logo-white.svg" alt="Savault" />
-      <span class="brand-sub">Content Tool</span>
+      <div class="brand-text">
+        <span class="brand-name">Savault</span>
+        <span class="brand-sub">Content Tool</span>
+      </div>
     </div>
 
     <!-- Mode Selector Tabs -->
-    <div class="top-tabs">
-      <button class="tab-btn active" id="tab-capture-mode">New Capture</button>
-      <button class="tab-btn" id="tab-fix-mode">Fix Entry</button>
+    <nav class="top-tabs" aria-label="Mode">
+      <button class="tab-btn active" id="tab-capture-mode" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        New Capture
+      </button>
+      <button class="tab-btn" id="tab-fix-mode" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 4.91a2.12 2.12 0 0 1-3-3l4.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Fix Entry
+      </button>
+    </nav>
+
+    <div class="topbar-meta">
+      <span class="conn-chip" id="notion-chip" title="Checking Notion connection…">
+        <span class="conn-dot"></span><span class="conn-label">Notion</span>
+      </span>
+      <span class="conn-chip" id="repo-chip" title="Checking asset repo…">
+        <span class="conn-dot"></span><span class="conn-label">Assets</span>
+      </span>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
     </div>
   </header>
 
   <main class="wrap">
 
-    <!-- Workflow Stepper -->
-    <div class="stepper" id="stepper">
-      <div class="stepper-segment active" data-step="1">
-        <div class="stepper-header">
-          <span class="stepper-num">1</span>
+    <!-- Workflow Stepper (clickable) -->
+    <div class="stepper" id="stepper" role="tablist" aria-label="Workflow steps">
+      <button type="button" class="stepper-segment active" data-step="1">
+        <span class="stepper-header">
+          <span class="stepper-num">1<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span class="stepper-label">Capture Site</span>
-        </div>
-        <div class="stepper-bar"></div>
-      </div>
-      <div class="stepper-segment" data-step="2">
-        <div class="stepper-header">
-          <span class="stepper-num">2</span>
+        </span>
+        <span class="stepper-bar"></span>
+      </button>
+      <button type="button" class="stepper-segment" data-step="2">
+        <span class="stepper-header">
+          <span class="stepper-num">2<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span class="stepper-label">Review &amp; Edit</span>
-        </div>
-        <div class="stepper-bar"></div>
-      </div>
-      <div class="stepper-segment" data-step="3">
-        <div class="stepper-header">
-          <span class="stepper-num">3</span>
+        </span>
+        <span class="stepper-bar"></span>
+      </button>
+      <button type="button" class="stepper-segment" data-step="3">
+        <span class="stepper-header">
+          <span class="stepper-num">3<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
           <span class="stepper-label">Notion &amp; Publish</span>
-        </div>
-        <div class="stepper-bar"></div>
-      </div>
+        </span>
+        <span class="stepper-bar"></span>
+      </button>
     </div>
 
     <!-- Step 1: Capture Section -->
@@ -62,18 +94,39 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             Capture Website
           </h2>
-          <div class="panel-subtitle">Enter a website URL to extract screenshots, colors, fonts, and meta description</div>
+          <div class="panel-subtitle">Paste a URL — the tool grabs screenshots, OG image, colors, fonts &amp; meta info</div>
         </div>
       </div>
 
       <form id="capture-form">
         <div class="input-group">
-          <input id="url-input" type="text" placeholder="https://example.com" required autocomplete="off" />
+          <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <input id="url-input" type="text" placeholder="example.com — paste or type a URL" required autocomplete="off" spellcheck="false" />
           <button type="submit" id="capture-btn" class="input-group-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <span id="capture-btn-text">Capture</span>
           </button>
         </div>
+        <div class="input-hint">
+          <span><kbd>⌘V</kbd> paste anywhere</span>
+          <span><kbd>/</kbd> focus URL</span>
+          <span><kbd>Enter</kbd> capture</span>
+        </div>
       </form>
+
+      <!-- Live progress timeline -->
+      <ul class="timeline hidden" id="capture-timeline" aria-live="polite">
+        <li class="tl-item" data-stage="browser"><span class="tl-dot"></span><span class="tl-label">Launch headless browser</span></li>
+        <li class="tl-item" data-stage="navigate"><span class="tl-dot"></span><span class="tl-label">Open the page</span></li>
+        <li class="tl-item" data-stage="settle"><span class="tl-dot"></span><span class="tl-label">Wait for content to load</span></li>
+        <li class="tl-item" data-stage="meta"><span class="tl-dot"></span><span class="tl-label">Read title &amp; meta tags</span></li>
+        <li class="tl-item" data-stage="analyze"><span class="tl-dot"></span><span class="tl-label">Analyze fonts, colors &amp; tech</span></li>
+        <li class="tl-item" data-stage="thumbnail"><span class="tl-dot"></span><span class="tl-label">Capture thumbnail</span></li>
+        <li class="tl-item" data-stage="scroll"><span class="tl-dot"></span><span class="tl-label">Scroll to load lazy content</span></li>
+        <li class="tl-item" data-stage="fullpage"><span class="tl-dot"></span><span class="tl-label">Capture fullpage screenshot</span></li>
+        <li class="tl-item" data-stage="og"><span class="tl-dot"></span><span class="tl-label">Download OG image</span></li>
+      </ul>
+
       <div id="capture-status"></div>
     </section>
 
@@ -85,12 +138,16 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Review &amp; Edit Details
           </h2>
-          <div class="panel-subtitle">Verify generated screenshots and refine showcase properties</div>
+          <div class="panel-subtitle">Verify the screenshots and refine the showcase properties</div>
         </div>
+        <a class="source-chip hidden" id="source-url" href="#" target="_blank" rel="noopener">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span id="source-url-text"></span>
+        </a>
       </div>
 
       <!-- Preview Image Cards -->
-      <div class="previews">
+      <div class="previews" id="previews">
         <div class="preview-card" id="card-thumbnail">
           <div class="preview-header">
             <span class="preview-title">Thumbnail</span>
@@ -103,7 +160,7 @@
             </div>
             <img id="preview-thumbnail" alt="Thumbnail preview" />
             <div class="replace-overlay">
-              <button class="overlay-btn btn-view-image" data-target="preview-thumbnail" type="button">
+              <button class="overlay-btn btn-view-image" data-target="preview-thumbnail" data-title="Thumbnail" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 View
               </button>
@@ -128,7 +185,7 @@
             </div>
             <img id="preview-fullpage" alt="Fullpage preview" />
             <div class="replace-overlay">
-              <button class="overlay-btn btn-view-image" data-target="preview-fullpage" type="button">
+              <button class="overlay-btn btn-view-image" data-target="preview-fullpage" data-title="Fullpage" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 View
               </button>
@@ -153,7 +210,7 @@
             </div>
             <img id="preview-og" alt="OG image preview" />
             <div class="replace-overlay">
-              <button class="overlay-btn btn-view-image" data-target="preview-og" type="button">
+              <button class="overlay-btn btn-view-image" data-target="preview-og" data-title="OG image" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 View
               </button>
@@ -166,48 +223,84 @@
           </div>
         </div>
       </div>
-      <p class="hint" id="og-missing-hint" style="display: none;">⚠️ No OG image found automatically. Hover card above to upload one manually.</p>
+      <p class="hint" id="og-missing-hint" style="display: none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        No OG image found automatically. Hover the card above to upload one manually.
+      </p>
+
+      <!-- Design analysis (from capture) -->
+      <div class="analysis hidden" id="analysis">
+        <div class="analysis-row">
+          <span class="analysis-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+            Palette
+          </span>
+          <div class="swatches" id="analysis-colors"></div>
+        </div>
+        <div class="analysis-row">
+          <span class="analysis-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            Fonts
+          </span>
+          <div class="chips" id="analysis-fonts"></div>
+        </div>
+        <div class="analysis-row">
+          <span class="analysis-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 4.91a2.12 2.12 0 0 1-3-3l4.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Tech
+          </span>
+          <div class="chips" id="analysis-tech"></div>
+        </div>
+      </div>
 
       <!-- Fields Form Grid -->
       <div class="fields">
-        <label>
-          Title
+        <label class="field">
+          <span class="field-head"><span>Title <em class="req">*</em></span></span>
           <input id="field-title" type="text" placeholder="e.g. Acme Website" />
         </label>
 
-        <label>
-          Slug
-          <input id="field-slug" type="text" placeholder="e.g. acme-website" />
+        <label class="field">
+          <span class="field-head"><span>Slug <em class="req">*</em></span></span>
+          <input id="field-slug" type="text" class="mono" placeholder="e.g. acme-website" spellcheck="false" />
+          <span class="field-hint" id="slug-hint"></span>
         </label>
 
-        <label>
-          Hover description
-          <input id="field-hover" type="text" placeholder="Short preview phrase" />
+        <label class="field">
+          <span class="field-head"><span>Hover description</span><span class="counter" id="hover-counter">0 / 60</span></span>
+          <input id="field-hover" type="text" placeholder="Short preview phrase" maxlength="120" />
         </label>
 
-        <label>
-          Pricing type
-          <input id="field-pricing" type="text" placeholder="Free / Freemium / Paid" />
+        <label class="field">
+          <span class="field-head"><span>Pricing type</span></span>
+          <select id="field-pricing">
+            <option value="">— Select —</option>
+            <option value="Free">Free</option>
+            <option value="Freemium">Freemium</option>
+            <option value="Paid">Paid</option>
+            <option value="__custom__">Custom / Other…</option>
+          </select>
+          <input id="field-pricing-custom" type="text" placeholder="Type custom pricing…" class="hidden custom-field-input" />
         </label>
 
-        <label>
-          Category
+        <label class="field">
+          <span class="field-head"><span>Category</span></span>
           <select id="field-category"><option value="">Loading categories…</option></select>
           <input id="field-category-custom" type="text" placeholder="Type custom category…" class="hidden custom-field-input" />
         </label>
 
-        <label>
-          Subcategory
+        <label class="field">
+          <span class="field-head"><span>Subcategory</span></span>
           <select id="field-subcategory"><option value="">Loading subcategories…</option></select>
           <input id="field-subcategory-custom" type="text" placeholder="Type custom subcategory…" class="hidden custom-field-input" />
         </label>
 
-        <label>
-          Meta description
-          <textarea id="field-meta" rows="3" placeholder="Page summary text"></textarea>
+        <label class="field field-wide">
+          <span class="field-head"><span>Meta description</span><span class="counter" id="meta-counter">0 / 160</span></span>
+          <textarea id="field-meta" rows="3" placeholder="Page summary text" maxlength="400"></textarea>
         </label>
 
-        <div class="checkbox-group">
+        <div class="checkbox-group field-wide">
           <label class="checkbox-row">
             <input id="field-is-new" type="checkbox" />
             Is New Entry
@@ -219,7 +312,10 @@
         </div>
       </div>
 
-      <button id="save-btn" class="btn btn-full">Optimize &amp; Save to Assets</button>
+      <button id="save-btn" class="btn btn-full">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Optimize &amp; Save to Assets
+      </button>
       <div id="save-status"></div>
     </section>
 
@@ -231,17 +327,31 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             Notion &amp; Deployment
           </h2>
-          <div class="panel-subtitle">Publish entry to Notion database and push WebP screenshots to GitHub CDN</div>
+          <div class="panel-subtitle">Publish the entry to Notion and push the WebP screenshots to the GitHub CDN</div>
         </div>
       </div>
 
       <div id="notion-fields" class="notion-fields"></div>
 
       <div class="actions-row">
-        <button id="copy-all-btn" class="btn btn-secondary">Copy All Fields</button>
-        <button id="notion-push-btn" class="btn">Add to Notion</button>
-        <button id="push-btn" class="btn btn-secondary">Push Assets to GitHub</button>
+        <button id="copy-all-btn" class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy All Fields
+        </button>
+        <button id="notion-push-btn" class="btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Add to Notion
+        </button>
+        <button id="push-btn" class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          Push Assets to GitHub
+        </button>
       </div>
+
+      <p class="hint hidden" id="notion-unconfigured-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Notion is not configured — set <code>NOTION_TOKEN</code> and <code>NOTION_DATABASE_ID</code> in <code>.env</code>, then restart. You can still copy the fields manually.
+      </p>
 
       <div id="notion-push-status"></div>
       <pre class="log hidden" id="push-log"></pre>
@@ -259,9 +369,13 @@
         </div>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Select showcase entry:</label>
+      <div class="fix-controls">
+        <div class="fix-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="fix-search" type="text" placeholder="Filter entries…" autocomplete="off" spellcheck="false" />
+        </div>
         <select id="fix-slug-select"><option value="">Loading entries list…</option></select>
+        <span class="fix-count" id="fix-count"></span>
       </div>
 
       <div class="previews" id="fix-previews">
@@ -277,7 +391,7 @@
             </div>
             <img id="fix-preview-thumbnail" alt="Current thumbnail" />
             <div class="replace-overlay">
-              <button class="overlay-btn btn-view-image" data-target="fix-preview-thumbnail" type="button">
+              <button class="overlay-btn btn-view-image" data-target="fix-preview-thumbnail" data-title="Current thumbnail" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 View
               </button>
@@ -302,7 +416,7 @@
             </div>
             <img id="fix-preview-fullpage" alt="Current fullpage" />
             <div class="replace-overlay">
-              <button class="overlay-btn btn-view-image" data-target="fix-preview-fullpage" type="button">
+              <button class="overlay-btn btn-view-image" data-target="fix-preview-fullpage" data-title="Current fullpage" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 View
               </button>
@@ -316,13 +430,46 @@
         </div>
       </div>
 
-      <div class="actions-row hidden" id="fix-push-row" style="margin-top: 20px;">
-        <button id="fix-push-btn" class="btn">Push &amp; Purge CDN Cache</button>
+      <div class="actions-row hidden" id="fix-push-row">
+        <button id="fix-push-btn" class="btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Push &amp; Purge CDN Cache
+        </button>
       </div>
       <pre class="log hidden" id="fix-log"></pre>
     </section>
 
   </main>
+
+  <footer class="foot">
+    <span>Savault Content Tool</span>
+    <span class="foot-sep">·</span>
+    <span><kbd>/</kbd> focus URL</span>
+    <span class="foot-sep">·</span>
+    <span><kbd>⌘V</kbd> paste anywhere</span>
+    <span class="foot-sep">·</span>
+    <span><kbd>Esc</kbd> close viewer</span>
+  </footer>
+
+  <!-- Full-resolution image viewer -->
+  <div class="lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <div class="lightbox-backdrop" data-close></div>
+    <div class="lightbox-body">
+      <div class="lightbox-toolbar">
+        <span class="lightbox-title" id="lightbox-title"></span>
+        <a class="lightbox-link" id="lightbox-open" href="#" target="_blank" rel="noopener">Open raw ↗</a>
+        <button class="icon-btn" type="button" data-close aria-label="Close viewer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="lightbox-scroll">
+        <img id="lightbox-img" alt="Full resolution preview" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <script src="/app.js"></script>
 </body>

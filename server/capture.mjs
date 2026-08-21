@@ -3,6 +3,10 @@ import path from "path"
 import { chromium } from "playwright"
 import { cleanTitle } from "./utils.mjs"
 
+// Optional override for environments where the Playwright browser download is
+// unavailable (e.g. blocked CDN): point this at a locally installed Chromium.
+const CHROMIUM_EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || ""
+
 async function hideCookieBanners(page) {
     try {
         await page.evaluate(() => {
@@ -322,11 +326,24 @@ async function downloadOgImage(page, ogImageUrl, destPath) {
  *   workDir/website-thumbnail.png
  *   workDir/website-fullpage.png
  *   workDir/og-image.<ext>  (if available)
+ *
+ * onProgress(stage, message) is called (when provided) at each stage so the
+ * UI can stream live progress instead of a single opaque spinner.
  */
-export async function captureSite(url, fallbackTitle, workDir) {
+export async function captureSite(url, fallbackTitle, workDir, onProgress) {
+    const progress = (stage, message) => {
+        if (typeof onProgress === "function") onProgress(stage, message)
+    }
+
     fs.mkdirSync(workDir, { recursive: true })
 
-    const browser = await chromium.launch({ headless: true })
+    progress("browser", "Launching headless browser…")
+    const browser = await chromium.launch({
+        headless: true,
+        ...(CHROMIUM_EXECUTABLE
+            ? { executablePath: CHROMIUM_EXECUTABLE, args: ["--no-sandbox", "--disable-gpu"] }
+            : {}),
+    })
     const page = await browser.newPage({
         viewport: { width: 1440, height: 1100 },
         deviceScaleFactor: 1,
@@ -344,8 +361,10 @@ export async function captureSite(url, fallbackTitle, workDir) {
     }
 
     try {
+        progress("navigate", `Opening ${url}…`)
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 })
         try {
+            progress("settle", "Waiting for the page to settle…")
             await page.waitForLoadState("networkidle", { timeout: 15000 })
         } catch {
             // some sites never go idle
@@ -353,7 +372,10 @@ export async function captureSite(url, fallbackTitle, workDir) {
         await page.waitForTimeout(2000)
         await hideCookieBanners(page)
 
+        progress("meta", "Reading title, description & OG tags…")
         const meta = await getWebsiteMeta(page, fallbackTitle)
+
+        progress("analyze", "Analyzing fonts, colors & tech stack…")
         const analysis = await analyzeDesign(page)
 
         result.title = cleanTitle(meta.title, fallbackTitle)
@@ -362,14 +384,17 @@ export async function captureSite(url, fallbackTitle, workDir) {
         result.analysis = analysis
 
         // Thumbnail (above the fold)
+        progress("thumbnail", "Capturing above-the-fold screenshot…")
         await page.screenshot({
             path: path.join(workDir, "website-thumbnail.png"),
             fullPage: false,
         })
 
         // Fullpage
+        progress("scroll", "Scrolling page to trigger lazy loading…")
         await autoScroll(page)
         await hideCookieBanners(page)
+        progress("fullpage", "Capturing fullpage screenshot…")
         await page.screenshot({
             path: path.join(workDir, "website-fullpage.png"),
             fullPage: true,
@@ -377,6 +402,7 @@ export async function captureSite(url, fallbackTitle, workDir) {
 
         // OG image
         if (meta.ogImage) {
+            progress("og", "Downloading OG image…")
             const ext = (meta.ogImage.split("?")[0].split(".").pop() || "png").slice(0, 4)
             const ogDest = path.join(workDir, `og-image.${ext}`)
             const ok = await downloadOgImage(page, meta.ogImage, ogDest)
