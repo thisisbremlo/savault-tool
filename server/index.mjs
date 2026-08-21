@@ -50,6 +50,10 @@ fs.mkdirSync(WORK_DIR, { recursive: true })
 // sessions are cleared when the server restarts.
 const sessions = new Map()
 
+// In-memory capture jobs so the UI can poll live progress while Playwright
+// is working (a capture takes 15–30s, previously a single opaque spinner).
+const captureJobs = new Map()
+
 const app = express()
 app.use(express.json({ limit: "2mb" }))
 app.use("/work", express.static(WORK_DIR)) // serve raw previews
@@ -62,9 +66,37 @@ function newSessionId() {
     return crypto.randomBytes(8).toString("hex")
 }
 
+function friendlyCaptureError(message) {
+    if (/executable doesn'?t exist|playwright|browserType\.launch/i.test(message)) {
+        return "Playwright browser is not installed. Run `npm run install:browsers` first."
+    }
+    if (/net::ERR|ENOTFOUND|getaddrinfo/i.test(message)) {
+        return `Could not reach that URL (${message}).`
+    }
+    if (/Timeout/i.test(message)) {
+        return `The page took too long to load (${message}).`
+    }
+    return message
+}
+
+// --- GET /api/config -------------------------------------------------------
+// Environment/asset-repo status so the UI can show connection chips and
+// disable actions that cannot work (e.g. Notion push without a token).
+app.get("/api/config", (req, res) => {
+    const repoCheck = checkAssetRepo(ASSET_REPO_DIR)
+    res.json({
+        notionConfigured: Boolean(NOTION_TOKEN && NOTION_DATABASE_ID),
+        assetRepoOk: repoCheck.ok,
+        assetRepoMessage: repoCheck.ok ? null : repoCheck.message,
+        github: `${GITHUB_USER}/${GITHUB_REPO}`,
+        cdnBase: CDN_BASE,
+    })
+})
+
 // --- POST /api/capture --------------------------------------------------
-// Takes a URL, runs Playwright, returns preview paths + suggested fields.
-app.post("/api/capture", async (req, res) => {
+// Starts a capture job and returns a jobId immediately. Poll
+// GET /api/capture/:jobId for live stage progress and the final result.
+app.post("/api/capture", (req, res) => {
     try {
         const rawUrl = req.body?.url
         const url = cleanUrl(rawUrl)
@@ -74,17 +106,55 @@ app.post("/api/capture", async (req, res) => {
         if (!fallbackSlug) return res.status(400).json({ error: "Could not derive a slug from the URL." })
 
         const sessionId = newSessionId()
+        const jobId = newSessionId()
         const workDir = path.join(WORK_DIR, sessionId)
 
-        const result = await captureSite(url, fallbackSlug, workDir)
+        const job = {
+            id: jobId,
+            sessionId,
+            url,
+            fallbackSlug,
+            workDir,
+            status: "running",
+            stage: "browser",
+            message: "Launching headless browser…",
+            history: [],
+            startedAt: Date.now(),
+            result: null,
+            error: null,
+        }
+        captureJobs.set(jobId, job)
+        if (captureJobs.size > 30) {
+            // drop the oldest finished jobs to keep memory flat
+            for (const [key, value] of captureJobs) {
+                if (captureJobs.size <= 30) break
+                if (value.status !== "running") captureJobs.delete(key)
+            }
+        }
 
-        const suggestedSlug = slugify(fallbackSlug)
+        runCaptureJob(job)
+
+        res.json({ jobId, url })
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+})
+
+async function runCaptureJob(job) {
+    try {
+        const result = await captureSite(job.url, job.fallbackSlug, job.workDir, (stage, message) => {
+            job.stage = stage
+            job.message = message
+            job.history.push({ stage, message })
+        })
+
+        const suggestedSlug = slugify(job.fallbackSlug)
         const metaDescription = result.metaDescription || result.pageSummary || ""
         const hoverDescription = makeHoverDescription(result.title, result.metaDescription, result.pageSummary)
 
-        sessions.set(sessionId, {
-            url,
-            workDir,
+        sessions.set(job.sessionId, {
+            url: job.url,
+            workDir: job.workDir,
             title: result.title,
             slug: suggestedSlug,
             analysis: result.analysis,
@@ -92,9 +162,10 @@ app.post("/api/capture", async (req, res) => {
             ogImagePath: result.ogImagePath,
         })
 
-        res.json({
-            sessionId,
-            url,
+        job.status = "done"
+        job.result = {
+            sessionId: job.sessionId,
+            url: job.url,
             title: result.title,
             slug: suggestedSlug,
             metaDescription,
@@ -102,16 +173,37 @@ app.post("/api/capture", async (req, res) => {
             analysis: result.analysis,
             error: result.error,
             previews: {
-                thumbnail: `/work/${sessionId}/website-thumbnail.png`,
-                fullpage: `/work/${sessionId}/website-fullpage.png`,
+                thumbnail: `/work/${job.sessionId}/website-thumbnail.png`,
+                fullpage: `/work/${job.sessionId}/website-fullpage.png`,
                 og: result.ogImageDownloaded
-                    ? `/work/${sessionId}/${path.basename(result.ogImagePath)}`
+                    ? `/work/${job.sessionId}/${path.basename(result.ogImagePath)}`
                     : null,
             },
-        })
+        }
     } catch (error) {
-        res.status(500).json({ error: error.message })
+        job.status = "error"
+        job.error = friendlyCaptureError(error.message)
+    } finally {
+        setTimeout(() => captureJobs.delete(job.id), 10 * 60 * 1000)
     }
+}
+
+// --- GET /api/capture/:jobId ------------------------------------------------
+// Poll endpoint: returns live progress; includes `result` once status=done.
+app.get("/api/capture/:jobId", (req, res) => {
+    const job = captureJobs.get(req.params.jobId)
+    if (!job) return res.status(404).json({ error: "Unknown capture job — the server may have restarted." })
+
+    const { id, status, stage, message, history, error } = job
+    res.json({
+        id,
+        status,
+        stage,
+        message,
+        history,
+        error,
+        result: status === "done" ? job.result : null,
+    })
 })
 
 // --- POST /api/replace ---------------------------------------------------

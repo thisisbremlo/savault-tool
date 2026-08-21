@@ -1,61 +1,64 @@
-let sessionId = null
+"use strict"
 
-const stepperSegments = document.querySelectorAll(".stepper-segment")
-const stepperContainer = document.getElementById("stepper")
+/* ============================================================
+   Savault Content Tool — client logic
+   ============================================================ */
 
-function setStep(n) {
-  stepperSegments.forEach((seg) => {
-    const stepNum = Number(seg.dataset.step)
-    if (stepNum <= n) {
-      seg.classList.add("active")
-    } else {
-      seg.classList.remove("active")
-    }
-  })
+const $ = (id) => document.getElementById(id)
+
+const state = {
+  mode: "capture",          // "capture" | "fix"
+  sessionId: null,
+  capturedUrl: "",
+  lastFields: [],
+  notionConfigured: null,   // null = unknown yet
+  cdnBase: "",
+  allSlugs: null,           // null = not loaded / unavailable
+  currentFixSlug: null,
+  maxStep: 1,
 }
 
-// --- Topbar Tab Navigation ---
-const tabCaptureMode = document.getElementById("tab-capture-mode")
-const tabFixMode = document.getElementById("tab-fix-mode")
-const panelCapture = document.getElementById("panel-capture")
-const panelReview = document.getElementById("panel-review")
-const panelNotion = document.getElementById("panel-notion")
-const panelFix = document.getElementById("panel-fix")
+/* ---------------- Theme ---------------- */
 
-tabCaptureMode.addEventListener("click", () => {
-  tabCaptureMode.classList.add("active")
-  tabFixMode.classList.remove("active")
-  
-  stepperContainer.classList.remove("hidden")
-  panelCapture.classList.remove("hidden")
-  panelFix.classList.add("hidden")
-  
-  if (sessionId) {
-    panelReview.classList.remove("hidden")
-    if (lastFields.length > 0) panelNotion.classList.remove("hidden")
-  }
+const themeToggle = $("theme-toggle")
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme
+  try { localStorage.setItem("savault-theme", theme) } catch {}
+}
+
+themeToggle.addEventListener("click", () => {
+  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")
 })
 
-tabFixMode.addEventListener("click", () => {
-  tabFixMode.classList.add("active")
-  tabCaptureMode.classList.remove("active")
-  
-  stepperContainer.classList.add("hidden")
-  panelCapture.classList.add("hidden")
-  panelReview.classList.add("hidden")
-  panelNotion.classList.add("hidden")
-  panelFix.classList.remove("hidden")
-})
+/* ---------------- Toasts ---------------- */
+
+const toastsEl = $("toasts")
+
+function toast(message, type = "info", duration = 3500) {
+  const el = document.createElement("div")
+  el.className = `toast ${type}`
+  el.textContent = message
+  toastsEl.appendChild(el)
+  setTimeout(() => {
+    el.classList.add("leaving")
+    setTimeout(() => el.remove(), 260)
+  }, duration)
+}
+
+/* ---------------- Status & log helpers ---------------- */
+
+const SPINNER_SVG =
+  '<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>'
 
 function showStatus(element, message, type = "info", loading = false) {
   if (!message) {
     element.innerHTML = ""
     return
   }
-  const spinnerHtml = loading
-    ? `<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>`
-    : ""
-  element.innerHTML = `<div class="status-badge ${type}">${spinnerHtml} <span>${message}</span></div>`
+  const spinnerHtml = loading ? SPINNER_SVG : ""
+  element.innerHTML = `<div class="status-badge ${type}">${spinnerHtml} <span></span></div>`
+  element.querySelector("span").textContent = message
 }
 
 function updateLog(logEl, content) {
@@ -68,25 +71,132 @@ function updateLog(logEl, content) {
   }
 }
 
-// --- View Full Resolution Image Handler ---
-document.addEventListener("click", (e) => {
-  const viewBtn = e.target.closest(".btn-view-image")
-  if (viewBtn) {
-    const targetId = viewBtn.dataset.target
-    const imgEl = document.getElementById(targetId)
-    if (imgEl && imgEl.src && imgEl.src !== window.location.href) {
-      window.open(imgEl.src, "_blank")
-    } else {
-      alert("No image available to view yet.")
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    try {
+      const ta = document.createElement("textarea")
+      ta.value = text
+      ta.style.position = "fixed"
+      ta.style.opacity = "0"
+      document.body.appendChild(ta)
+      ta.select()
+      const ok = document.execCommand("copy")
+      ta.remove()
+      return ok
+    } catch {
+      return false
     }
   }
+}
+
+/* ---------------- Stepper & panel navigation ---------------- */
+
+const stepperSegments = document.querySelectorAll(".stepper-segment")
+const panelCapture = $("panel-capture")
+const panelReview = $("panel-review")
+const panelNotion = $("panel-notion")
+const panelFix = $("panel-fix")
+const stepperContainer = $("stepper")
+
+function stepReached(n) {
+  if (n >= 3) return state.maxStep >= 3
+  if (n === 2) return Boolean(state.sessionId)
+  return true
+}
+
+function setStep(n) {
+  state.maxStep = Math.max(state.maxStep, n)
+  stepperSegments.forEach((seg) => {
+    const stepNum = Number(seg.dataset.step)
+    seg.classList.toggle("active", stepNum <= n)
+    const complete =
+      (stepNum === 1 && Boolean(state.sessionId)) ||
+      (stepNum === 2 && state.lastFields.length > 0)
+    seg.classList.toggle("complete", complete)
+    seg.disabled = !stepReached(stepNum)
+  })
+}
+
+function goToStep(n) {
+  if (n > 1 && !stepReached(n)) return
+  setStep(n)
+  const target = n === 1 ? panelCapture : n === 2 ? panelReview : panelNotion
+  target.scrollIntoView({ behavior: "smooth", block: "start" })
+}
+
+stepperSegments.forEach((seg) => {
+  seg.addEventListener("click", () => goToStep(Number(seg.dataset.step)))
 })
 
-loadNotionOptions()
+/* ---------------- Mode tabs ---------------- */
+
+const tabCaptureMode = $("tab-capture-mode")
+const tabFixMode = $("tab-fix-mode")
+
+function setMode(mode) {
+  state.mode = mode
+  tabCaptureMode.classList.toggle("active", mode === "capture")
+  tabFixMode.classList.toggle("active", mode === "fix")
+
+  stepperContainer.classList.toggle("hidden", mode === "fix")
+  panelCapture.classList.toggle("hidden", mode === "fix")
+  panelReview.classList.toggle("hidden", mode === "fix" || !state.sessionId)
+  panelNotion.classList.toggle("hidden", mode === "fix" || !state.lastFields.length)
+  panelFix.classList.toggle("hidden", mode === "capture")
+
+  if (mode === "capture") window.scrollTo({ top: 0, behavior: "smooth" })
+}
+
+tabCaptureMode.addEventListener("click", () => setMode("capture"))
+tabFixMode.addEventListener("click", () => setMode("fix"))
+
+/* ---------------- Config / connection chips ---------------- */
+
+async function loadConfig() {
+  const notionChip = $("notion-chip")
+  const repoChip = $("repo-chip")
+  try {
+    const res = await fetch("/api/config")
+    const cfg = await res.json()
+    if (!res.ok) throw new Error(cfg.error || "Config unavailable")
+
+    state.notionConfigured = cfg.notionConfigured
+    state.cdnBase = cfg.cdnBase || ""
+
+    if (cfg.notionConfigured) {
+      notionChip.classList.add("ok")
+      notionChip.title = "Notion integration is configured"
+    } else {
+      notionChip.classList.add("warn")
+      notionChip.title = "NOTION_TOKEN / NOTION_DATABASE_ID not set in .env — “Add to Notion” will be unavailable"
+      $("notion-unconfigured-note").classList.remove("hidden")
+      $("notion-push-btn").disabled = true
+      $("notion-push-btn").title = "Notion is not configured (.env)"
+    }
+
+    if (cfg.assetRepoOk) {
+      repoChip.classList.add("ok")
+      repoChip.title = `Asset repo ready (${cfg.github})`
+    } else {
+      repoChip.classList.add("warn")
+      repoChip.title = cfg.assetRepoMessage || "Asset repo not found"
+    }
+  } catch (err) {
+    notionChip.classList.add("warn")
+    notionChip.title = "Could not reach the server for config"
+    repoChip.classList.add("warn")
+    repoChip.title = "Could not reach the server for config"
+  }
+}
+
+/* ---------------- Notion select options ---------------- */
 
 async function loadNotionOptions() {
-  const categorySelect = document.getElementById("field-category")
-  const subcategorySelect = document.getElementById("field-subcategory")
+  const categorySelect = $("field-category")
+  const subcategorySelect = $("field-subcategory")
 
   try {
     const res = await fetch("/api/notion/options")
@@ -123,8 +233,8 @@ function fillSelect(selectEl, options) {
 }
 
 function setupCustomSelectToggle(selectId, customInputId) {
-  const select = document.getElementById(selectId)
-  const customInput = document.getElementById(customInputId)
+  const select = $(selectId)
+  const customInput = $(customInputId)
 
   select.addEventListener("change", () => {
     if (select.value === "__custom__") {
@@ -137,246 +247,569 @@ function setupCustomSelectToggle(selectId, customInputId) {
   })
 }
 
+setupCustomSelectToggle("field-pricing", "field-pricing-custom")
 setupCustomSelectToggle("field-category", "field-category-custom")
 setupCustomSelectToggle("field-subcategory", "field-subcategory-custom")
 
 function selectOrCustomValue(selectId, customInputId) {
-  const select = document.getElementById(selectId)
-  const customInput = document.getElementById(customInputId)
+  const select = $(selectId)
+  const customInput = $(customInputId)
   return select.value === "__custom__" ? customInput.value.trim() : select.value
 }
 
-const captureForm = document.getElementById("capture-form")
-const urlInput = document.getElementById("url-input")
-const captureBtn = document.getElementById("capture-btn")
-const captureBtnText = document.getElementById("capture-btn-text")
-const captureStatus = document.getElementById("capture-status")
+/* ---------------- Capture flow (job + live progress) ---------------- */
 
-const previewThumb = document.getElementById("preview-thumbnail")
-const previewFull = document.getElementById("preview-fullpage")
-const previewOg = document.getElementById("preview-og")
-const ogMissingHint = document.getElementById("og-missing-hint")
+const captureForm = $("capture-form")
+const urlInput = $("url-input")
+const captureBtn = $("capture-btn")
+const captureBtnText = $("capture-btn-text")
+const captureStatus = $("capture-status")
+const captureTimeline = $("capture-timeline")
+const previewsEl = $("previews")
 
-const fieldTitle = document.getElementById("field-title")
-const fieldSlug = document.getElementById("field-slug")
-const fieldHover = document.getElementById("field-hover")
-const fieldMeta = document.getElementById("field-meta")
-const fieldCategory = document.getElementById("field-category")
-const fieldSubcategory = document.getElementById("field-subcategory")
-const fieldPricing = document.getElementById("field-pricing")
-const fieldIsNew = document.getElementById("field-is-new")
-const fieldIsSponsored = document.getElementById("field-is-sponsored")
+const previewThumb = $("preview-thumbnail")
+const previewFull = $("preview-fullpage")
+const previewOg = $("preview-og")
+const ogMissingHint = $("og-missing-hint")
 
-const saveBtn = document.getElementById("save-btn")
-const saveStatus = document.getElementById("save-status")
+const TL_STAGES = ["browser", "navigate", "settle", "meta", "analyze", "thumbnail", "scroll", "fullpage", "og"]
 
-const notionFieldsEl = document.getElementById("notion-fields")
-const copyAllBtn = document.getElementById("copy-all-btn")
-const notionPushBtn = document.getElementById("notion-push-btn")
-const notionPushStatus = document.getElementById("notion-push-status")
-const pushBtn = document.getElementById("push-btn")
-const pushLog = document.getElementById("push-log")
+function resetTimeline() {
+  captureTimeline.querySelectorAll(".tl-item").forEach((item) => {
+    item.classList.remove("done", "active", "skipped", "error")
+  })
+}
 
-let lastFields = []
+function updateTimeline(job) {
+  const items = Array.from(captureTimeline.querySelectorAll(".tl-item"))
+  const historyStages = new Set((job.history || []).map((h) => h.stage))
+
+  if (job.status === "done") {
+    items.forEach((item) => {
+      const stage = item.dataset.stage
+      item.classList.add(historyStages.has(stage) ? "done" : "skipped")
+    })
+    return
+  }
+
+  const idx = TL_STAGES.indexOf(job.stage)
+  items.forEach((item) => {
+    const stage = item.dataset.stage
+    const sIdx = TL_STAGES.indexOf(stage)
+    item.classList.remove("done", "active", "skipped", "error")
+    if (job.status === "error") {
+      if (sIdx === idx) item.classList.add("error")
+      else if (sIdx < idx) item.classList.add("done")
+    } else if (sIdx < idx) item.classList.add("done")
+    else if (sIdx === idx) item.classList.add("active")
+  })
+}
+
+function pollJob(jobId) {
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now()
+
+    const timer = setInterval(async () => {
+      try {
+        if (Date.now() - startedAt > 150000) {
+          clearInterval(timer)
+          reject(new Error("Capture timed out after 150 seconds."))
+          return
+        }
+
+        const res = await fetch(`/api/capture/${jobId}`)
+        if (!res.ok) {
+          clearInterval(timer)
+          const data = await res.json().catch(() => ({}))
+          reject(new Error(data.error || "Capture job was lost — the server may have restarted."))
+          return
+        }
+
+        const job = await res.json()
+        updateTimeline(job)
+
+        if (job.status === "done") {
+          clearInterval(timer)
+          resolve(job.result)
+        } else if (job.status === "error") {
+          clearInterval(timer)
+          reject(new Error(job.error || "Capture failed."))
+        }
+      } catch (err) {
+        clearInterval(timer)
+        reject(err)
+      }
+    }, 400)
+  })
+}
+
+function setCaptureLoading(loading) {
+  captureBtn.disabled = loading
+  captureBtnText.textContent = loading ? "Capturing…" : "Capture"
+  previewsEl.classList.toggle("is-loading", loading)
+}
 
 captureForm.addEventListener("submit", async (e) => {
   e.preventDefault()
+
+  const raw = urlInput.value.trim()
+  if (!raw) {
+    toast("Enter a URL first.", "warning")
+    urlInput.focus()
+    return
+  }
+
   captureBtn.disabled = true
-  captureBtnText.textContent = "Capturing…"
-  showStatus(captureStatus, "Capturing website & analyzing design... this may take 15–30 seconds.", "info", true)
-  
+  setCaptureLoading(true)
+  showStatus(captureStatus, "Starting capture…", "info", true)
+  resetTimeline()
+  captureTimeline.classList.remove("hidden")
+
   panelReview.classList.add("hidden")
   panelNotion.classList.add("hidden")
-  updateLog(pushLog, "")
-  setStep(1)
+  updateLog($("push-log"), "")
+  setModeResetForCapture()
 
   try {
-    const res = await fetch("/api/capture", {
+    const startRes = await fetch("/api/capture", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: urlInput.value }),
+      body: JSON.stringify({ url: raw }),
     })
-    const data = await res.json()
+    const startData = await startRes.json()
+    if (!startRes.ok) throw new Error(startData.error || "Could not start capture.")
 
-    if (!res.ok) throw new Error(data.error || "Capture failed.")
+    showStatus(captureStatus, "Capturing website & analyzing design…", "info", true)
+    const data = await pollJob(startData.jobId)
 
-    sessionId = data.sessionId
-    fieldTitle.value = data.title || ""
-    fieldSlug.value = data.slug || ""
-    fieldHover.value = data.hoverDescription || ""
-    fieldMeta.value = data.metaDescription || ""
-    fieldCategory.value = ""
-    fieldSubcategory.value = ""
-    document.getElementById("field-category-custom").value = ""
-    document.getElementById("field-category-custom").classList.add("hidden")
-    document.getElementById("field-subcategory-custom").value = ""
-    document.getElementById("field-subcategory-custom").classList.add("hidden")
-    fieldPricing.value = ""
-    fieldIsNew.checked = false
-    fieldIsSponsored.checked = false
-
-    previewThumb.src = data.previews.thumbnail
-    previewFull.src = data.previews.fullpage
-
-    if (data.previews.og) {
-      previewOg.src = data.previews.og
-      ogMissingHint.style.display = "none"
-    } else {
-      previewOg.removeAttribute("src")
-      ogMissingHint.style.display = "block"
-    }
-
-    if (data.error) {
-      showStatus(captureStatus, `Captured with warning: ${data.error}`, "warning")
-    } else {
-      showStatus(captureStatus, "Website captured successfully! Review details below.", "success")
-    }
-
-    panelReview.classList.remove("hidden")
-    setStep(2)
+    applyCaptureResult(data)
   } catch (err) {
-    showStatus(captureStatus, `Error: ${err.message}`, "warning")
+    updateTimeline({ status: "error", stage: currentStage(), history: [] })
+    showStatus(captureStatus, `Error: ${err.message}`, "error")
+    toast(err.message, "error", 5000)
   } finally {
-    captureBtn.disabled = false
-    captureBtnText.textContent = "Capture"
+    setCaptureLoading(false)
   }
 })
+
+function currentStage() {
+  const active = captureTimeline.querySelector(".tl-item.active")
+  return active ? active.dataset.stage : "browser"
+}
+
+function setModeResetForCapture() {
+  state.sessionId = null
+  state.lastFields = []
+  state.maxStep = 1
+  setStep(1)
+}
+
+function applyCaptureResult(data) {
+  state.sessionId = data.sessionId
+  state.capturedUrl = data.url
+
+  $("field-title").value = data.title || ""
+  $("field-slug").value = data.slug || ""
+  $("field-hover").value = data.hoverDescription || ""
+  $("field-meta").value = data.metaDescription || ""
+  $("field-category").value = ""
+  $("field-subcategory").value = ""
+  hideCustomInput("field-category-custom")
+  hideCustomInput("field-subcategory-custom")
+  $("field-pricing").value = ""
+  hideCustomInput("field-pricing-custom")
+  $("field-is-new").checked = false
+  $("field-is-sponsored").checked = false
+
+  updateCounter($("field-hover"), $("hover-counter"), 60)
+  updateCounter($("field-meta"), $("meta-counter"), 160)
+
+  previewThumb.src = data.previews.thumbnail
+  previewFull.src = data.previews.fullpage
+
+  if (data.previews.og) {
+    previewOg.src = data.previews.og
+    ogMissingHint.style.display = "none"
+  } else {
+    previewOg.removeAttribute("src")
+    ogMissingHint.style.display = "flex"
+  }
+
+  const sourceChip = $("source-url")
+  sourceChip.href = data.url
+  $("source-url-text").textContent = data.url.replace(/^https?:\/\//, "")
+  sourceChip.classList.remove("hidden")
+
+  renderAnalysis(data.analysis)
+
+  if (data.error) {
+    showStatus(captureStatus, `Captured with warning: ${data.error}`, "warning")
+    toast("Captured with warning — check the details.", "warning")
+  } else {
+    showStatus(captureStatus, "Website captured successfully! Review the details below.", "success")
+    toast("Capture complete.", "success")
+  }
+
+  panelReview.classList.remove("hidden")
+  setStep(2)
+  updateSlugHint()
+
+  setTimeout(() => {
+    panelReview.scrollIntoView({ behavior: "smooth", block: "start" })
+    $("field-title").focus()
+    $("field-title").select()
+  }, 120)
+}
+
+function hideCustomInput(id) {
+  const el = $(id)
+  el.value = ""
+  el.classList.add("hidden")
+}
+
+/* ---------------- Design analysis rendering ---------------- */
+
+const analysisEl = $("analysis")
+
+function renderAnalysis(analysis) {
+  const colors = analysis?.colorPalette || []
+  const fonts = analysis?.fonts || []
+  const builder = analysis?.builder || ""
+  const tech = analysis?.techStack || []
+
+  if (!colors.length && !fonts.length && !tech.length && !builder) {
+    analysisEl.classList.add("hidden")
+    return
+  }
+
+  analysisEl.classList.remove("hidden")
+
+  const colorsEl = $("analysis-colors")
+  colorsEl.innerHTML = ""
+  if (colors.length) {
+    colors.slice(0, 8).forEach((hex) => {
+      const swatch = document.createElement("button")
+      swatch.type = "button"
+      swatch.className = "swatch"
+      swatch.title = `Copy ${hex}`
+      swatch.innerHTML = `<span class="swatch-color" style="background:${hex}"></span><span class="swatch-code"></span>`
+      swatch.querySelector(".swatch-code").textContent = hex
+      swatch.addEventListener("click", async () => {
+        const ok = await copyText(hex)
+        toast(ok ? `${hex} copied` : "Copy failed", ok ? "success" : "error", 1800)
+      })
+      colorsEl.appendChild(swatch)
+    })
+  } else {
+    colorsEl.innerHTML = '<span class="analysis-empty">No colors detected</span>'
+  }
+
+  const fontsEl = $("analysis-fonts")
+  fontsEl.innerHTML = ""
+  if (fonts.length) {
+    fonts.slice(0, 8).forEach((font) => {
+      const chip = document.createElement("span")
+      chip.className = "chip"
+      chip.textContent = font
+      fontsEl.appendChild(chip)
+    })
+  } else {
+    fontsEl.innerHTML = '<span class="analysis-empty">No custom fonts detected</span>'
+  }
+
+  const techEl = $("analysis-tech")
+  techEl.innerHTML = ""
+  if (builder && builder !== "Unknown") {
+    const chip = document.createElement("span")
+    chip.className = "chip builder"
+    chip.textContent = builder
+    techEl.appendChild(chip)
+  }
+  if (tech.length) {
+    tech.slice(0, 8).forEach((t) => {
+      const chip = document.createElement("span")
+      chip.className = "chip"
+      chip.textContent = t
+      techEl.appendChild(chip)
+    })
+  }
+  if (!techEl.children.length) {
+    techEl.innerHTML = '<span class="analysis-empty">Nothing detected</span>'
+  }
+}
+
+/* ---------------- Slug handling ---------------- */
+
+const fieldSlug = $("field-slug")
+const slugHint = $("slug-hint")
+
+fieldSlug.addEventListener("input", () => {
+  // Live-normalize to a URL-safe slug while typing.
+  const cursorAtEnd = fieldSlug.selectionStart === fieldSlug.value.length
+  fieldSlug.value = fieldSlug.value
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+
+  if (cursorAtEnd) fieldSlug.value = fieldSlug.value.replace(/-+/g, "-")
+  updateSlugHint()
+})
+
+function updateSlugHint() {
+  const slug = fieldSlug.value.replace(/^-+|-+$/g, "")
+
+  if (!state.sessionId) {
+    slugHint.textContent = ""
+    return
+  }
+  if (!slug) {
+    slugHint.textContent = "Slug is required."
+    slugHint.className = "field-hint error"
+    return
+  }
+  if (state.allSlugs === null) {
+    slugHint.textContent = `Will be saved as ${slug}-thumbnail.webp`
+    slugHint.className = "field-hint"
+    return
+  }
+  if (state.allSlugs.includes(slug)) {
+    slugHint.textContent = `“${slug}” already exists — saving will overwrite its assets. Use “Fix Entry” to update in place instead.`
+    slugHint.className = "field-hint warn"
+    return
+  }
+  slugHint.textContent = `Available — will be saved as ${slug}-thumbnail.webp`
+  slugHint.className = "field-hint ok"
+}
+
+/* ---------------- Character counters ---------------- */
+
+function updateCounter(input, counterEl, max) {
+  const len = (input.value || "").length
+  counterEl.textContent = `${len} / ${max}`
+  counterEl.classList.toggle("over", len > max)
+}
+
+$("field-hover").addEventListener("input", (e) => updateCounter(e.target, $("hover-counter"), 60))
+$("field-meta").addEventListener("input", (e) => updateCounter(e.target, $("meta-counter"), 160))
+
+/* ---------------- Replace preview images (review) ---------------- */
 
 document.querySelectorAll("#panel-review .replace-input").forEach((input) => {
   input.addEventListener("change", async (e) => {
     const file = e.target.files[0]
-    if (!file || !sessionId) return
+    if (!file || !state.sessionId) return
 
     const type = e.target.dataset.type
     const formData = new FormData()
     formData.append("file", file)
-    formData.append("sessionId", sessionId)
+    formData.append("sessionId", state.sessionId)
     formData.append("type", type)
 
-    const res = await fetch("/api/replace", { method: "POST", body: formData })
-    const data = await res.json()
-    if (!res.ok) {
-      alert(`Replace failed: ${data.error}`)
-      return
-    }
+    try {
+      const res = await fetch("/api/replace", { method: "POST", body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Replace failed.")
 
-    if (type === "thumbnail") previewThumb.src = data.previewUrl
-    if (type === "fullpage") previewFull.src = data.previewUrl
-    if (type === "og") {
-      previewOg.src = data.previewUrl
-      ogMissingHint.style.display = "none"
+      if (type === "thumbnail") previewThumb.src = data.previewUrl
+      if (type === "fullpage") previewFull.src = data.previewUrl
+      if (type === "og") {
+        previewOg.src = data.previewUrl
+        ogMissingHint.style.display = "none"
+      }
+      toast(`${type} image replaced.`, "success", 2200)
+    } catch (err) {
+      toast(`Replace failed: ${err.message}`, "error", 5000)
+    } finally {
+      input.value = ""
     }
   })
 })
 
+/* ---------------- Save (optimize & copy into asset repo) ---------------- */
+
+const saveBtn = $("save-btn")
+const saveStatus = $("save-status")
+
 saveBtn.addEventListener("click", async () => {
-  if (!sessionId) return
+  if (!state.sessionId) return
+
+  const title = $("field-title").value.trim()
+  const slug = fieldSlug.value.replace(/^-+|-+$/g, "")
+
+  if (!title) {
+    showStatus(saveStatus, "Title is required.", "error")
+    $("field-title").focus()
+    return
+  }
+  if (!slug) {
+    showStatus(saveStatus, "Slug is required.", "error")
+    fieldSlug.focus()
+    return
+  }
+
   saveBtn.disabled = true
-  showStatus(saveStatus, "Optimizing images with Sharp & copying to savault-assets...", "info", true)
+  showStatus(saveStatus, "Optimizing images with Sharp & copying to the asset repo…", "info", true)
 
   try {
     const res = await fetch("/api/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionId,
-        title: fieldTitle.value,
-        slug: fieldSlug.value,
-        hoverDescription: fieldHover.value,
-        metaDescription: fieldMeta.value,
+        sessionId: state.sessionId,
+        title,
+        slug,
+        hoverDescription: $("field-hover").value,
+        metaDescription: $("field-meta").value,
         category: selectOrCustomValue("field-category", "field-category-custom"),
         subcategory: selectOrCustomValue("field-subcategory", "field-subcategory-custom"),
-        pricingType: fieldPricing.value,
-        isNew: fieldIsNew.checked,
-        isSponsored: fieldIsSponsored.checked,
+        pricingType: selectOrCustomValue("field-pricing", "field-pricing-custom"),
+        isNew: $("field-is-new").checked,
+        isSponsored: $("field-is-sponsored").checked,
       }),
     })
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || "Save failed.")
+    if (!res.ok) {
+      if (/unknown session/i.test(data.error || "")) {
+        throw new Error("Session expired (server restarted?) — please capture the site again.")
+      }
+      throw new Error(data.error || "Save failed.")
+    }
 
-    showStatus(saveStatus, `Assets saved under slug "${data.slug}"!`, "success")
-    lastFields = data.fields
+    showStatus(saveStatus, `Assets saved under slug “${data.slug}”.`, "success")
+    state.lastFields = data.fields
     renderNotionFields(data.fields)
+
+    if (state.allSlugs && !state.allSlugs.includes(data.slug)) {
+      state.allSlugs.push(data.slug)
+      state.allSlugs.sort()
+      renderFixOptions($("fix-search").value.trim().toLowerCase())
+    }
+    updateSlugHint()
+
     panelNotion.classList.remove("hidden")
     setStep(3)
+    toast("Assets optimized & saved.", "success")
+    setTimeout(() => panelNotion.scrollIntoView({ behavior: "smooth", block: "start" }), 120)
   } catch (err) {
-    showStatus(saveStatus, `Error: ${err.message}`, "warning")
+    showStatus(saveStatus, `Error: ${err.message}`, "error")
+    toast(err.message, "error", 5000)
   } finally {
     saveBtn.disabled = false
   }
 })
 
+/* ---------------- Notion fields (grouped) ---------------- */
+
+const notionFieldsEl = $("notion-fields")
+
+const FIELD_GROUPS = [
+  {
+    title: "Content",
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    keys: [
+      "title", "slug", "hover_description", "category", "subcategory",
+      "pricing_type", "is_new", "is_sponsored", "meta_description", "added_date",
+    ],
+  },
+  {
+    title: "Links & Assets",
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    keys: ["thumbnail_url", "fullpage_url", "og_image_url", "external_link"],
+  },
+  {
+    title: "Design",
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+    keys: ["fonts", "color_palette", "builder", "tech_stack"],
+  },
+]
+
 function renderNotionFields(fields) {
   notionFieldsEl.innerHTML = ""
-  fields.forEach((field) => {
-    const row = document.createElement("div")
-    row.className = "notion-field"
 
-    const label = document.createElement("span")
-    label.className = "label"
-    label.textContent = field.label
+  for (const group of FIELD_GROUPS) {
+    const groupFields = fields.filter((f) => group.keys.includes(f.key))
+    if (!groupFields.length) continue
 
-    const value = document.createElement("span")
-    value.className = "value"
-    value.textContent = field.value || "—"
-    value.title = field.value || ""
+    const groupEl = document.createElement("div")
+    groupEl.className = "notion-group"
 
-    const btn = document.createElement("button")
-    btn.textContent = "Copy"
-    btn.addEventListener("click", () => {
-      navigator.clipboard.writeText(field.value || "")
-      btn.textContent = "✓ Copied"
-      btn.style.background = "#F1F5F9"
-      btn.style.color = "#0F172A"
-      setTimeout(() => {
-        btn.textContent = "Copy"
-        btn.style.background = ""
-        btn.style.color = ""
-      }, 1200)
-    })
+    const titleEl = document.createElement("div")
+    titleEl.className = "notion-group-title"
+    titleEl.innerHTML = group.icon
+    const titleText = document.createElement("span")
+    titleText.textContent = group.title
+    titleEl.appendChild(titleText)
+    notionFieldsEl.appendChild(titleEl)
 
-    row.append(label, value, btn)
-    notionFieldsEl.appendChild(row)
-  })
+    for (const field of groupFields) {
+      const row = document.createElement("div")
+      row.className = "notion-field"
+
+      const label = document.createElement("span")
+      label.className = "label"
+      label.textContent = field.label
+
+      const value = document.createElement("span")
+      value.className = "value"
+      value.textContent = field.value || "—"
+      value.title = field.value || ""
+
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.textContent = "Copy"
+      btn.addEventListener("click", async () => {
+        const ok = await copyText(field.value || "")
+        if (ok) {
+          btn.textContent = "✓ Copied"
+          btn.classList.add("copied")
+          setTimeout(() => {
+            btn.textContent = "Copy"
+            btn.classList.remove("copied")
+          }, 1200)
+        } else {
+          toast("Clipboard unavailable", "error")
+        }
+      })
+
+      row.append(label, value, btn)
+      groupEl.appendChild(row)
+    }
+
+    notionFieldsEl.appendChild(groupEl)
+  }
 }
 
-copyAllBtn.addEventListener("click", () => {
-  const block = lastFields.map((f) => `${f.label}: ${f.value}`).join("\n")
-  navigator.clipboard.writeText(block)
-  copyAllBtn.textContent = "✓ All Copied"
-  setTimeout(() => (copyAllBtn.textContent = "Copy All Fields"), 1500)
-})
+/* ---------------- Copy all / Notion push / GitHub push ---------------- */
 
-pushBtn.addEventListener("click", async () => {
-  if (!sessionId) return
-  pushBtn.disabled = true
-  updateLog(pushLog, "Pushing WebP assets to GitHub repository...")
+const copyAllBtn = $("copy-all-btn")
+const notionPushBtn = $("notion-push-btn")
+const notionPushStatus = $("notion-push-status")
+const pushBtn = $("push-btn")
+const pushLog = $("push-log")
 
-  try {
-    const res = await fetch("/api/push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
-    })
-    const data = await res.json()
-    updateLog(pushLog, (data.log || []).join("\n") + "\n\n" + (data.message || ""))
-  } catch (err) {
-    updateLog(pushLog, `Error: ${err.message}`)
-  } finally {
-    pushBtn.disabled = false
+copyAllBtn.addEventListener("click", async () => {
+  const block = state.lastFields.map((f) => `${f.label}: ${f.value}`).join("\n")
+  const ok = await copyText(block)
+  if (ok) {
+    copyAllBtn.textContent = "✓ All Copied"
+    toast("All fields copied to clipboard.", "success", 2000)
+    setTimeout(() => {
+      copyAllBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="0"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy All Fields'
+    }, 1500)
+  } else {
+    toast("Clipboard unavailable", "error")
   }
 })
 
 notionPushBtn.addEventListener("click", async () => {
-  if (!lastFields.length) return
+  if (!state.lastFields.length) return
   notionPushBtn.disabled = true
-  showStatus(notionPushStatus, "Syncing entry properties with Notion API...", "info", true)
+  showStatus(notionPushStatus, "Syncing entry properties with the Notion API…", "info", true)
 
   try {
     const res = await fetch("/api/notion/push", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields: lastFields }),
+      body: JSON.stringify({ fields: state.lastFields }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || "Failed to add to Notion.")
@@ -386,24 +819,65 @@ notionPushBtn.addEventListener("click", async () => {
       message += ` (Skipped unmapped properties: ${data.unmatched.join(", ")})`
     }
     showStatus(notionPushStatus, message, "success")
+
+    if (data.pageUrl) {
+      notionPushStatus.querySelectorAll(".status-link").forEach((el) => el.remove())
+      const link = document.createElement("a")
+      link.className = "status-link"
+      link.href = data.pageUrl
+      link.target = "_blank"
+      link.rel = "noopener"
+      link.textContent = "Open page in Notion ↗"
+      notionPushStatus.appendChild(link)
+    }
+
+    toast("Notion entry created.", "success")
   } catch (err) {
-    showStatus(notionPushStatus, `Error: ${err.message}`, "warning")
+    showStatus(notionPushStatus, `Error: ${err.message}`, "error")
+    toast(err.message, "error", 5000)
   } finally {
     notionPushBtn.disabled = false
   }
 })
 
-// --- Fix Existing Entry Logic ---
-const fixSlugSelect = document.getElementById("fix-slug-select")
-const fixPreviewThumb = document.getElementById("fix-preview-thumbnail")
-const fixPreviewFull = document.getElementById("fix-preview-fullpage")
-const fixPushRow = document.getElementById("fix-push-row")
-const fixPushBtn = document.getElementById("fix-push-btn")
-const fixLog = document.getElementById("fix-log")
+pushBtn.addEventListener("click", async () => {
+  if (!state.sessionId) return
+  pushBtn.disabled = true
+  updateLog(pushLog, "Pushing WebP assets to the GitHub repository…")
 
-let currentFixSlug = null
+  try {
+    const res = await fetch("/api/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: state.sessionId }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Push failed.")
 
-loadFixSlugs()
+    updateLog(pushLog, (data.log || []).join("\n") + "\n\n" + (data.message || ""))
+    if (data.ok) {
+      toast("Assets pushed to GitHub.", "success")
+    } else {
+      toast(data.message || "Push failed — see log.", "error", 5000)
+    }
+  } catch (err) {
+    updateLog(pushLog, `Error: ${err.message}`)
+    toast(err.message, "error", 5000)
+  } finally {
+    pushBtn.disabled = false
+  }
+})
+
+/* ---------------- Fix Existing Entry ---------------- */
+
+const fixSearch = $("fix-search")
+const fixSlugSelect = $("fix-slug-select")
+const fixCount = $("fix-count")
+const fixPreviewThumb = $("fix-preview-thumbnail")
+const fixPreviewFull = $("fix-preview-fullpage")
+const fixPushRow = $("fix-push-row")
+const fixPushBtn = $("fix-push-btn")
+const fixLog = $("fix-log")
 
 async function loadFixSlugs() {
   try {
@@ -411,27 +885,54 @@ async function loadFixSlugs() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || "Could not load existing entries.")
 
+    state.allSlugs = data.slugs || []
+    renderFixOptions("")
+  } catch (err) {
+    state.allSlugs = null
     fixSlugSelect.innerHTML = ""
     const blank = document.createElement("option")
     blank.value = ""
-    blank.textContent = data.slugs.length ? "— Select an existing entry —" : "— No entries found —"
+    blank.textContent = "— Asset repo unavailable —"
     fixSlugSelect.appendChild(blank)
-
-    for (const slug of data.slugs) {
-      const option = document.createElement("option")
-      option.value = slug
-      option.textContent = slug
-      fixSlugSelect.appendChild(option)
-    }
-  } catch (err) {
-    updateLog(fixLog, `Error: ${err.message}`)
+    fixCount.textContent = ""
+    fixCount.title = err.message
   }
 }
 
-fixSlugSelect.addEventListener("change", () => {
-  currentFixSlug = fixSlugSelect.value || null
+function renderFixOptions(filter) {
+  const all = state.allSlugs || []
+  const filtered = filter ? all.filter((s) => s.includes(filter)) : all
 
-  if (!currentFixSlug) {
+  fixSlugSelect.innerHTML = ""
+  const blank = document.createElement("option")
+  blank.value = ""
+  blank.textContent = filtered.length ? "— Select an existing entry —" : "— No matching entries —"
+  fixSlugSelect.appendChild(blank)
+
+  for (const slug of filtered) {
+    const option = document.createElement("option")
+    option.value = slug
+    option.textContent = slug
+    fixSlugSelect.appendChild(option)
+  }
+
+  if (state.currentFixSlug && filtered.includes(state.currentFixSlug)) {
+    fixSlugSelect.value = state.currentFixSlug
+  }
+
+  fixCount.textContent = filter
+    ? `${filtered.length} of ${all.length} entries`
+    : `${all.length} ${all.length === 1 ? "entry" : "entries"}`
+}
+
+fixSearch.addEventListener("input", () => {
+  renderFixOptions(fixSearch.value.trim().toLowerCase())
+})
+
+fixSlugSelect.addEventListener("change", () => {
+  state.currentFixSlug = fixSlugSelect.value || null
+
+  if (!state.currentFixSlug) {
     fixPushRow.classList.add("hidden")
     updateLog(fixLog, "")
     fixPreviewThumb.removeAttribute("src")
@@ -440,8 +941,8 @@ fixSlugSelect.addEventListener("change", () => {
   }
 
   const t = Date.now()
-  fixPreviewThumb.src = `/assets-preview/thumbnails/${currentFixSlug}-thumbnail.webp?t=${t}`
-  fixPreviewFull.src = `/assets-preview/fullpages/${currentFixSlug}-fullpage.webp?t=${t}`
+  fixPreviewThumb.src = `/assets-preview/thumbnails/${state.currentFixSlug}-thumbnail.webp?t=${t}`
+  fixPreviewFull.src = `/assets-preview/fullpages/${state.currentFixSlug}-fullpage.webp?t=${t}`
   fixPushRow.classList.remove("hidden")
   updateLog(fixLog, "")
 })
@@ -449,46 +950,53 @@ fixSlugSelect.addEventListener("change", () => {
 document.querySelectorAll(".fix-replace-input").forEach((input) => {
   input.addEventListener("change", async (e) => {
     const file = e.target.files[0]
-    if (!file || !currentFixSlug) {
-      if (!currentFixSlug) alert("Please select an entry in the dropdown first.")
+    if (!file) return
+    if (!state.currentFixSlug) {
+      toast("Select an entry in the dropdown first.", "warning")
       return
     }
 
     const type = e.target.dataset.type
     const formData = new FormData()
     formData.append("file", file)
-    formData.append("slug", currentFixSlug)
+    formData.append("slug", state.currentFixSlug)
     formData.append("type", type)
 
-    updateLog(fixLog, `Optimizing replaced ${type}...`)
-    const res = await fetch("/api/fix/replace", { method: "POST", body: formData })
-    const data = await res.json()
-    if (!res.ok) {
-      updateLog(fixLog, `Error: ${data.error}`)
-      return
-    }
+    updateLog(fixLog, `Optimizing replaced ${type}…`)
+    try {
+      const res = await fetch("/api/fix/replace", { method: "POST", body: formData })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Replace failed.")
 
-    if (type === "thumbnail") fixPreviewThumb.src = data.previewUrl
-    if (type === "fullpage") fixPreviewFull.src = data.previewUrl
-    updateLog(fixLog, `${type} image replaced locally! Click "Push & Purge CDN Cache" to publish.`)
+      if (type === "thumbnail") fixPreviewThumb.src = data.previewUrl
+      if (type === "fullpage") fixPreviewFull.src = data.previewUrl
+      updateLog(fixLog, `${type} image replaced locally! Click “Push & Purge CDN Cache” to publish.`)
+      toast(`${type} replaced locally.`, "success", 2200)
+    } catch (err) {
+      updateLog(fixLog, `Error: ${err.message}`)
+      toast(err.message, "error", 5000)
+    } finally {
+      input.value = ""
+    }
   })
 })
 
 fixPushBtn.addEventListener("click", async () => {
-  if (!currentFixSlug) {
-    alert("Please select an entry in the dropdown first.")
+  if (!state.currentFixSlug) {
+    toast("Select an entry in the dropdown first.", "warning")
     return
   }
   fixPushBtn.disabled = true
-  updateLog(fixLog, "Pushing assets to GitHub and purging jsDelivr CDN cache...")
+  updateLog(fixLog, "Pushing assets to GitHub and purging the jsDelivr CDN cache…")
 
   try {
     const res = await fetch("/api/fix/push", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: currentFixSlug }),
+      body: JSON.stringify({ slug: state.currentFixSlug }),
     })
     const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Push failed.")
 
     const gitLog = (data.log || []).join("\n")
     const purgeLog = (data.purge || [])
@@ -496,9 +1004,89 @@ fixPushBtn.addEventListener("click", async () => {
       .join("\n")
 
     updateLog(fixLog, `${gitLog}\n\n${data.message || ""}\n\n${purgeLog}`)
+    if (data.ok) toast("Assets pushed & CDN purged.", "success")
+    else toast(data.message || "Push failed — see log.", "error", 5000)
   } catch (err) {
     updateLog(fixLog, `Error: ${err.message}`)
+    toast(err.message, "error", 5000)
   } finally {
     fixPushBtn.disabled = false
   }
 })
+
+/* ---------------- Lightbox image viewer ---------------- */
+
+const lightbox = $("lightbox")
+const lightboxImg = $("lightbox-img")
+const lightboxTitle = $("lightbox-title")
+const lightboxOpen = $("lightbox-open")
+
+function openLightbox(src, title) {
+  lightboxImg.src = src
+  lightboxTitle.textContent = title || "Preview"
+  lightboxOpen.href = src
+  lightbox.classList.remove("hidden")
+  document.body.style.overflow = "hidden"
+}
+
+function closeLightbox() {
+  if (lightbox.classList.contains("hidden")) return
+  lightbox.classList.add("hidden")
+  lightboxImg.src = ""
+  document.body.style.overflow = ""
+}
+
+lightbox.addEventListener("click", (e) => {
+  if (e.target.closest("[data-close]")) closeLightbox()
+})
+
+document.addEventListener("click", (e) => {
+  const viewBtn = e.target.closest(".btn-view-image")
+  if (!viewBtn) return
+  const imgEl = $(viewBtn.dataset.target)
+  if (imgEl && imgEl.getAttribute("src")) {
+    openLightbox(imgEl.src, viewBtn.dataset.title || "Preview")
+  } else {
+    toast("No image available to view yet.", "warning")
+  }
+})
+
+/* ---------------- Global keyboard & paste shortcuts ---------------- */
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeLightbox()
+    return
+  }
+
+  if (e.key === "/" && state.mode === "capture") {
+    const tag = document.activeElement?.tagName?.toLowerCase()
+    if (tag !== "input" && tag !== "textarea" && tag !== "select") {
+      e.preventDefault()
+      urlInput.focus()
+      urlInput.select()
+    }
+  }
+})
+
+document.addEventListener("paste", (e) => {
+  if (state.mode !== "capture") return
+  const target = e.target
+  if (target instanceof HTMLElement && target.closest("input, textarea, select")) return
+
+  const text = (e.clipboardData || window.clipboardData)?.getData("text")?.trim()
+  if (!text || /\s/.test(text)) return
+
+  e.preventDefault()
+  urlInput.value = text
+  urlInput.focus()
+  toast("URL pasted — press Enter to capture.", "info", 2500)
+})
+
+/* ---------------- Init ---------------- */
+
+setStep(1)
+loadConfig()
+loadNotionOptions()
+loadFixSlugs()
+window.addEventListener("DOMContentLoaded", () => urlInput.focus())
