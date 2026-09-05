@@ -136,16 +136,28 @@ stepperSegments.forEach((seg) => {
 const tabCaptureMode = $("tab-capture-mode")
 const tabFixMode = $("tab-fix-mode")
 
+const stepperSection = $("stepper-section")
+const modeHeading = $("mode-heading")
+const pageEyebrow = $("page-eyebrow")
+
 function setMode(mode) {
   state.mode = mode
   tabCaptureMode.classList.toggle("active", mode === "capture")
   tabFixMode.classList.toggle("active", mode === "fix")
 
   stepperContainer.classList.toggle("hidden", mode === "fix")
+  stepperSection.classList.toggle("hidden", mode === "fix")
   panelCapture.classList.toggle("hidden", mode === "fix")
   panelReview.classList.toggle("hidden", mode === "fix" || !state.sessionId)
   panelNotion.classList.toggle("hidden", mode === "fix" || !state.lastFields.length)
   panelFix.classList.toggle("hidden", mode === "capture")
+
+  if (modeHeading) {
+    modeHeading.textContent = mode === "fix" ? "Fix Entry" : "New Capture"
+  }
+  if (pageEyebrow) {
+    pageEyebrow.textContent = mode === "fix" ? "Savault / Maintenance" : "Savault Content Tool"
+  }
 
   if (mode === "capture") window.scrollTo({ top: 0, behavior: "smooth" })
 }
