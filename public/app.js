@@ -31,6 +31,23 @@ themeToggle.addEventListener("click", () => {
   setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")
 })
 
+/* ---------------- URL helpers ---------------- */
+
+function normalizeUrl(raw) {
+  let text = (raw || "").trim()
+  if (!text) return ""
+  // Treat pasted scheme-less domains as https (server does the same).
+  if (!/^https?:\/\//i.test(text)) text = `https://${text}`
+  try {
+    const parsed = new URL(text)
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return ""
+    parsed.hash = ""
+    return parsed.toString()
+  } catch {
+    return ""
+  }
+}
+
 /* ---------------- Toasts ---------------- */
 
 const toastsEl = $("toasts")
@@ -50,6 +67,9 @@ function toast(message, type = "info", duration = 3500) {
 
 const SPINNER_SVG =
   '<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>'
+
+const CAPTURE_ICON_SVG =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
 
 function showStatus(element, message, type = "info", loading = false) {
   if (!message) {
@@ -156,8 +176,12 @@ function setMode(mode) {
     modeHeading.textContent = mode === "fix" ? "Fix Entry" : "New Capture"
   }
   if (pageEyebrow) {
-    pageEyebrow.textContent = mode === "fix" ? "Savault / Maintenance" : "Savault Content Tool"
+    pageEyebrow.textContent = mode === "fix" ? "Savault · Maintenance" : "Savault Content Tool"
   }
+
+  // The stepper lives in the right column only for capture mode.
+  const stepperSection = $("stepper-section")
+  if (stepperSection) stepperSection.classList.toggle("hidden", mode === "fix")
 
   if (mode === "capture") window.scrollTo({ top: 0, behavior: "smooth" })
 }
@@ -165,8 +189,66 @@ function setMode(mode) {
 tabCaptureMode.addEventListener("click", () => setMode("capture"))
 tabFixMode.addEventListener("click", () => setMode("fix"))
 
-/* ---------------- Config / connection chips ---------------- */
+/* ---------------- Config / connection chips & stat cards ---------------- */
 
+function setStat(id, { value, badge, badgeClass = "", title = "" } = {}) {
+  const valueEl = $(`stat-${id}-value`)
+  const badgeEl = $(`stat-${id}-badge`)
+  if (!valueEl || !badgeEl) return
+  valueEl.textContent = value
+  if (badgeClass === "small-text") valueEl.classList.add("small-text")
+  badgeEl.textContent = badge
+  badgeEl.className = `stat-badge ${badgeClass}`.trim()
+  if (title) badgeEl.title = title
+}
+
+function setStatsFromConfig(cfg, configError) {
+  if (configError) {
+    setStat("entries", { value: "—", badge: "Offline", badgeClass: "err", title: configError })
+    setStat("notion", { value: "—", badge: "Offline", badgeClass: "err", title: configError })
+    setStat("repo", { value: "—", badge: "Offline", badgeClass: "err", title: configError })
+    return
+  }
+
+  const slugs = Array.isArray(state.allSlugs) ? state.allSlugs : null
+  setStat("entries", {
+    value: slugs ? String(slugs.length) : "—",
+    badge: slugs ? "Live" : "Loading",
+    badgeClass: slugs ? "" : "warn",
+    title: slugs ? "Entries currently in the asset repo" : "Still loading the entry list",
+  })
+
+  setStat("notion", {
+    value: cfg.notionConfigured ? "Connected" : "Not set",
+    badge: cfg.notionConfigured ? "OK" : "Setup",
+    badgeClass: cfg.notionConfigured ? "" : "warn",
+    title: cfg.notionConfigured
+      ? "Notion integration is configured"
+      : "NOTION_TOKEN / NOTION_DATABASE_ID not set in .env",
+  })
+
+  const github = cfg.github || ""
+  setStat("repo", {
+    value: cfg.assetRepoOk ? (github || "Ready") : "Missing",
+    badge: cfg.assetRepoOk ? "Live" : "Check",
+    badgeClass: cfg.assetRepoOk ? "" : "err",
+    title: cfg.assetRepoOk ? `Asset repo ready${github ? ` (${github})` : ""}` : (cfg.assetRepoMessage || "Asset repo not found"),
+  })
+}
+
+// Entries count arrives asynchronously — refresh the stat card when it lands.
+async function refreshEntriesStat() {
+  try {
+    const res = await fetch("/api/assets/list")
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "List unavailable")
+    state.allSlugs = data.slugs || []
+    renderFixOptions("")
+    if (state.notionConfigured !== null) setStatsFromConfig(state.lastConfig || {}, "")
+  } catch {
+    /* loadFixSlugs reports the failure in the fix dropdown */
+  }
+}
 async function loadConfig() {
   const notionChip = $("notion-chip")
   const repoChip = $("repo-chip")
@@ -177,6 +259,7 @@ async function loadConfig() {
 
     state.notionConfigured = cfg.notionConfigured
     state.cdnBase = cfg.cdnBase || ""
+    state.lastConfig = cfg
 
     if (cfg.notionConfigured) {
       notionChip.classList.add("ok")
@@ -196,11 +279,14 @@ async function loadConfig() {
       repoChip.classList.add("warn")
       repoChip.title = cfg.assetRepoMessage || "Asset repo not found"
     }
+
+    setStatsFromConfig(cfg, "")
   } catch (err) {
     notionChip.classList.add("warn")
     notionChip.title = "Could not reach the server for config"
     repoChip.classList.add("warn")
     repoChip.title = "Could not reach the server for config"
+    setStatsFromConfig({}, err.message)
   }
 }
 
@@ -358,6 +444,8 @@ function pollJob(jobId) {
 function setCaptureLoading(loading) {
   captureBtn.disabled = loading
   captureBtnText.textContent = loading ? "Capturing…" : "Capture"
+  const icon = $("capture-btn-icon")
+  if (icon) icon.innerHTML = loading ? SPINNER_SVG : CAPTURE_ICON_SVG
   previewsEl.classList.toggle("is-loading", loading)
 }
 
@@ -402,6 +490,48 @@ captureForm.addEventListener("submit", async (e) => {
   } finally {
     setCaptureLoading(false)
   }
+})
+
+/* ---------------- Capture form ----------------
+
+   The URL input normalizes scheme-less input live ("acme.com" becomes
+   "https://acme.com/") and previews the exact URL that will be captured.
+   ---------------------------------------------------------------- */
+
+const urlPreviewWrap = $("url-preview-wrap")
+const urlPreviewEl = $("url-preview")
+
+function updateUrlPreview() {
+  const normalized = normalizeUrl(urlInput.value)
+  if (!normalized) {
+    urlPreviewWrap.hidden = true
+    urlPreviewEl.textContent = ""
+    return
+  }
+  urlPreviewWrap.hidden = false
+  urlPreviewEl.textContent = normalized
+}
+
+urlInput.addEventListener("input", updateUrlPreview)
+
+function submitCapture() {
+  if (captureForm.requestSubmit) captureForm.requestSubmit()
+  else captureForm.dispatchEvent(new Event("submit", { cancelable: true }))
+}
+
+function submitIfUrlLooksReady(text) {
+  if (!text || /\s/.test(text)) return
+  if (!/^([a-z0-9-]+\.)+[a-z]{2,}/i.test(text.replace(/^https?:\/\//i, ""))) return
+  submitCapture()
+}
+
+urlInput.addEventListener("paste", () => {
+  // Wait a tick so the pasted value is present in the field, then let the
+  // browser's native URL validation decide via a real submit.
+  setTimeout(() => {
+    updateUrlPreview()
+    submitIfUrlLooksReady(urlInput.value)
+  }, 0)
 })
 
 function currentStage() {
@@ -750,7 +880,7 @@ function renderNotionFields(fields) {
     const titleText = document.createElement("span")
     titleText.textContent = group.title
     titleEl.appendChild(titleText)
-    notionFieldsEl.appendChild(titleEl)
+    groupEl.appendChild(titleEl)
 
     for (const field of groupFields) {
       const row = document.createElement("div")
@@ -918,6 +1048,7 @@ async function loadFixSlugs() {
 
     state.allSlugs = data.slugs || []
     renderFixOptions("")
+    if (state.notionConfigured !== null) setStatsFromConfig(state.lastConfig || {}, "")
   } catch (err) {
     state.allSlugs = null
     fixSlugSelect.innerHTML = ""
@@ -1114,6 +1245,7 @@ document.addEventListener("paste", (e) => {
 
   e.preventDefault()
   urlInput.value = text
+  updateUrlPreview()
   urlInput.focus()
   toast("URL pasted — press Enter to capture.", "info", 2500)
 })

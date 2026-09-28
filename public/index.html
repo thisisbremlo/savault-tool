@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#F6F6F8" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0E0F13" media="(prefers-color-scheme: dark)" />
+  <meta name="color-scheme" content="light dark" />
   <title>Savault Content Tool</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="apple-touch-icon" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <script>
     // Apply theme before first paint to avoid a flash of the wrong theme.
     (() => {
@@ -25,9 +28,9 @@
 
   <div class="app-shell">
 
-    <!-- ============ Sidebar / workspace navigation ============ -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-scroll">
+    <!-- ============ Top navigation ============ -->
+    <header class="topnav">
+      <div class="topnav-inner">
 
         <div class="brand-wrapper">
           <span class="brand-mark" aria-hidden="true">
@@ -41,86 +44,82 @@
           </span>
         </div>
 
-        <nav class="sidebar-section" aria-label="Modes">
-          <div class="sidebar-label">Workspace</div>
-          <button class="nav-item active" id="tab-capture-mode" type="button">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <nav class="nav-tabs" aria-label="Modes">
+          <button class="nav-item nav-tab active" id="tab-capture-mode" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             New Capture
           </button>
-          <button class="nav-item" id="tab-fix-mode" type="button">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 4.91a2.12 2.12 0 0 1-3-3l4.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          <button class="nav-item nav-tab" id="tab-fix-mode" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 4.91a2.12 2.12 0 0 1-3-3l4.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             Fix Entry
           </button>
         </nav>
 
-        <div class="sidebar-section" id="stepper-section">
-          <div class="sidebar-label">Workflow</div>
-          <div class="stepper" id="stepper" role="tablist" aria-label="Workflow steps">
-            <button type="button" class="stepper-segment active" data-step="1">
-              <span class="stepper-num">1<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
-              <span class="stepper-label">Capture Site</span>
-            </button>
-            <button type="button" class="stepper-segment" data-step="2">
-              <span class="stepper-num">2<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
-              <span class="stepper-label">Review &amp; Edit</span>
-            </button>
-            <button type="button" class="stepper-segment" data-step="3">
-              <span class="stepper-num">3<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
-              <span class="stepper-label">Notion &amp; Publish</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="sidebar-section" id="connections-section">
-          <div class="sidebar-label">Connections</div>
+        <div class="topnav-right">
           <span class="conn-chip" id="notion-chip" title="Checking Notion connection…">
             <span class="conn-dot"></span><span class="conn-label">Notion</span>
           </span>
           <span class="conn-chip" id="repo-chip" title="Checking asset repo…">
             <span class="conn-dot"></span><span class="conn-label">Assets</span>
           </span>
-        </div>
-
-      </div>
-
-      <div class="sidebar-footer">
-        <span class="sidebar-hint"><kbd>⌘V</kbd> paste any URL</span>
-        <span class="sidebar-hint"><kbd>/</kbd> focus URL</span>
-      </div>
-    </aside>
-
-    <!-- ============ Main column ============ -->
-    <div class="main-column">
-
-      <header class="topbar">
-        <div class="page-heading">
-          <span class="page-eyebrow" id="page-eyebrow">Savault Content Tool</span>
-          <span class="page-title" id="mode-heading">New Capture</span>
-        </div>
-        <div class="topbar-meta">
           <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
-            <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.07" y2="19.07"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+            <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
         </div>
-      </header>
 
-      <main class="wrap">
+      </div>
+    </header>
 
-        <!-- Page intro -->
-        <section class="hero">
-          <h1>Capture any site. <span class="hero-accent">Publish in minutes.</span></h1>
-          <p>Screenshots, design analysis and Notion-ready metadata — one clean workflow.</p>
-        </section>
+    <!-- ============ Dashboard layout ============ -->
+    <div class="layout">
+
+      <div class="layout-main">
+
+        <div class="page-head">
+          <div class="page-heading">
+            <span class="page-eyebrow" id="page-eyebrow">Savault Content Tool</span>
+            <h1 class="page-title" id="mode-heading">New Capture</h1>
+          </div>
+          <a class="source-chip hidden" id="source-url" href="#" target="_blank" rel="noopener">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <span id="source-url-text"></span>
+          </a>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-label">Entries</span>
+              <span class="stat-badge" id="stat-entries-badge">…</span>
+            </div>
+            <div class="stat-value" id="stat-entries-value">—</div>
+            <div class="stat-sub">Saved showcases in the asset repo</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-label">Notion</span>
+              <span class="stat-badge" id="stat-notion-badge">…</span>
+            </div>
+            <div class="stat-value" id="stat-notion-value">—</div>
+            <div class="stat-sub">Database sync for new entries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-label">Asset repo</span>
+              <span class="stat-badge" id="stat-repo-badge">…</span>
+            </div>
+            <div class="stat-value" id="stat-repo-value">—</div>
+            <div class="stat-sub">CDN screenshots &amp; WebP assets</div>
+          </div>
+        </div>
 
         <!-- Step 1: Capture Section -->
         <section class="panel" id="panel-capture">
           <div class="panel-header">
             <div>
-              <h2>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                Capture Website
-              </h2>
+              <h2>Capture Website</h2>
               <div class="panel-subtitle">Paste a URL — the tool grabs screenshots, OG image, colors, fonts &amp; meta info.</div>
             </div>
           </div>
@@ -128,11 +127,15 @@
           <form id="capture-form">
             <div class="input-group">
               <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              <input id="url-input" type="text" placeholder="example.com — paste or type a URL" required autocomplete="off" spellcheck="false" />
+              <input id="url-input" type="url" placeholder="example.com — paste or type a URL" required autocomplete="off" spellcheck="false" />
               <button type="submit" id="capture-btn" class="input-group-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <svg id="capture-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <span id="capture-btn-text">Capture</span>
               </button>
+            </div>
+            <div class="input-hint" id="url-preview-wrap" hidden>
+              <span class="url-preview-label">Will capture</span>
+              <span class="url-preview-value mono" id="url-preview"></span>
             </div>
             <div class="input-hint">
               <span><kbd>⌘V</kbd> paste anywhere</span>
@@ -161,16 +164,9 @@
         <section class="panel hidden" id="panel-review">
           <div class="panel-header">
             <div>
-              <h2>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Review &amp; Edit Details
-              </h2>
+              <h2>Review &amp; Edit Details</h2>
               <div class="panel-subtitle">Verify the screenshots and refine the showcase properties.</div>
             </div>
-            <a class="source-chip hidden" id="source-url" href="#" target="_blank" rel="noopener">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              <span id="source-url-text"></span>
-            </a>
           </div>
 
           <!-- Preview Image Cards -->
@@ -350,10 +346,7 @@
         <section class="panel hidden" id="panel-notion">
           <div class="panel-header">
             <div>
-              <h2>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                Notion &amp; Deployment
-              </h2>
+              <h2>Notion &amp; Deployment</h2>
               <div class="panel-subtitle">Publish the entry to Notion and push the WebP screenshots to the GitHub CDN.</div>
             </div>
           </div>
@@ -388,10 +381,7 @@
         <section class="panel hidden" id="panel-fix">
           <div class="panel-header">
             <div>
-              <h2>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                Fix Existing Entry
-              </h2>
+              <h2>Fix Existing Entry</h2>
               <div class="panel-subtitle">Replace screenshots for existing showcases under the exact same CDN URL.</div>
             </div>
           </div>
@@ -466,19 +456,65 @@
           <pre class="log hidden" id="fix-log"></pre>
         </section>
 
-      </main>
+      </div>
 
-      <footer class="foot">
-        <span>Savault Content Tool</span>
-        <span class="foot-sep">·</span>
-        <span><kbd>/</kbd> focus URL</span>
-        <span class="foot-sep">·</span>
-        <span><kbd>⌘V</kbd> paste anywhere</span>
-        <span class="foot-sep">·</span>
-        <span><kbd>Esc</kbd> close viewer</span>
-      </footer>
+      <!-- ============ Right column ============ -->
+      <aside class="layout-side">
+
+        <div class="side-card" id="stepper-section">
+          <div class="side-card-head">
+            <span class="side-card-title">Workflow</span>
+            <span class="side-card-sub">3 steps</span>
+          </div>
+          <div class="stepper" id="stepper" role="tablist" aria-label="Workflow steps">
+            <button type="button" class="stepper-segment active" data-step="1">
+              <span class="stepper-num">1<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span class="stepper-text">
+                <span class="stepper-label">Capture Site</span>
+                <span class="stepper-step-sub">Screenshots &amp; analysis</span>
+              </span>
+            </button>
+            <button type="button" class="stepper-segment" data-step="2">
+              <span class="stepper-num">2<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span class="stepper-text">
+                <span class="stepper-label">Review &amp; Edit</span>
+                <span class="stepper-step-sub">Fields &amp; previews</span>
+              </span>
+            </button>
+            <button type="button" class="stepper-segment" data-step="3">
+              <span class="stepper-num">3<svg class="stepper-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span class="stepper-text">
+                <span class="stepper-label">Notion &amp; Publish</span>
+                <span class="stepper-step-sub">Sync &amp; push to CDN</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="side-card tips-card">
+          <span class="tips-eyebrow">Quick capture</span>
+          <h3 class="tips-title">Paste anywhere.<br />Publish in minutes.</h3>
+          <p class="tips-text">Press <kbd>⌘V</kbd> on any page with a URL in your clipboard — Savault fills the field and starts the capture.</p>
+          <div class="tips-tiles">
+            <span class="tip-tile"><kbd>/</kbd> Focus URL</span>
+            <span class="tip-tile"><kbd>⌘V</kbd> Paste</span>
+            <span class="tip-tile"><kbd>Enter</kbd> Capture</span>
+            <span class="tip-tile"><kbd>Esc</kbd> Close</span>
+          </div>
+        </div>
+
+      </aside>
 
     </div>
+
+    <footer class="foot">
+      <span class="foot-mark">Savault</span>
+      <span class="foot-sep">·</span>
+      <span>Content Tool</span>
+      <span class="foot-sep">·</span>
+      <span><kbd>⌘V</kbd> paste anywhere</span>
+    </footer>
+
   </div>
 
   <!-- Full-resolution image viewer -->

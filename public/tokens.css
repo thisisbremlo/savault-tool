@@ -1,0 +1,144 @@
+/* ============================================================
+   Savault Content Tool — shadcn/ui zinc palette
+   Neutral zinc scale · zinc-950 primary · white surfaces
+   Light = shadcn default · Dark = shadcn zinc dark
+   ============================================================ */
+
+:root {
+  /* Surfaces — shadcn: background / card / secondary / muted */
+  --bg: oklch(99.7% 0.002 285);
+  --panel: oklch(100% 0 0);
+  --surface-1: oklch(100% 0 0);
+  --surface-2: oklch(97% 0 0);        /* zinc-100 */
+  --surface-3: oklch(92% 0 0);        /* zinc-200 */
+  --surface-hover: oklch(97% 0 0);
+  --border: oklch(92% 0 0);           /* zinc-200 */
+  --border-strong: oklch(87% 0 0);    /* zinc-300 */
+
+  /* Text — foreground / zinc-600 / muted-foreground */
+  --text-1: oklch(14.1% 0.005 285.8); /* zinc-950 */
+  --text-2: oklch(44.2% 0.017 285.8); /* zinc-600 */
+  --text-3: oklch(55.2% 0.013 285.8); /* zinc-500 */
+
+  /* Primary — zinc-900 (shadcn primary); no chromatic accent */
+  --accent: oklch(21% 0.006 285.9);        /* zinc-900 */
+  --accent-strong: oklch(27.4% 0.006 286); /* zinc-800 */
+  --accent-2: oklch(14.1% 0.005 285.8);
+  --accent-2-strong: oklch(9% 0.004 286);
+  --accent-text: oklch(37% 0.013 285.8);   /* zinc-700 */
+  --accent-soft: oklch(97% 0 0);           /* zinc-100 */
+  --accent-ring: oklch(21% 0.006 285.9 / 0.28);
+
+  /* Semantic — shadcn-adjacent, muted */
+  --success-bg: oklch(96% 0.02 155);
+  --success-text: oklch(46% 0.11 155);
+  --success-border: oklch(84% 0.07 155);
+  --success-dot: oklch(56% 0.13 155);
+
+  --warning-bg: oklch(96% 0.035 85);
+  --warning-text: oklch(48% 0.11 75);
+  --warning-border: oklch(84% 0.09 80);
+  --warning-dot: oklch(66% 0.14 80);
+
+  --error-bg: oklch(96% 0.015 25);
+  --error-text: oklch(52% 0.18 25);   /* red-600-ish destructive */
+  --error-border: oklch(84% 0.07 25);
+  --error-dot: oklch(58% 0.2 25);
+
+  --info-bg: var(--surface-2);
+  --info-text: var(--text-2);
+  --info-border: var(--border);
+
+  /* Flat depth — hairlines, no soft shadows */
+  --shadow-sm: 0 1px 0 var(--border);
+  --shadow-md: 0 1px 0 var(--border);
+  --shadow-lg: 0 24px 60px -24px oklch(14.1% 0.005 285.8 / 0.3);
+
+  /* Misc */
+  --overlay: oklch(14.1% 0.005 285.8 / 0.55);
+  --mono-bg: oklch(14.1% 0.005 285.8);
+  --mono-text: oklch(92% 0 0);
+
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1.5l4 4 4-4' stroke='%2371717a' stroke-width='1.25' fill='none'/%3E%3C/svg%3E");
+
+  /* Fonts */
+  --font-display: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
+
+  /* Spacing — 4pt scale */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4.5rem;
+  --space-3xl: 7rem;
+
+  /* Radius — shadcn-ish softness on the sharp editorial frame */
+  --radius-card: 0px;
+  --radius-input: 0px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-short: 180ms;
+  --dur-med: 280ms;
+
+  font-family: var(--font-body);
+  color-scheme: light;
+}
+
+/* shadcn zinc dark */
+[data-theme="dark"] {
+  --bg: oklch(14.1% 0.005 285.8);      /* zinc-950 */
+  --panel: oklch(17.5% 0.005 285.8);   /* between zinc-900/950 */
+  --surface-1: oklch(21% 0.006 285.9); /* zinc-900 */
+  --surface-2: oklch(23% 0.006 286);   /* secondary 240 3.7% 15.9% */
+  --surface-3: oklch(27.4% 0.006 286); /* zinc-800 */
+  --surface-hover: oklch(25% 0.006 286);
+  --border: oklch(27.4% 0.006 286);    /* zinc-800 */
+  --border-strong: oklch(37% 0.013 285.8); /* zinc-700 */
+
+  --text-1: oklch(98.5% 0 0);          /* zinc-50 */
+  --text-2: oklch(71% 0.006 285.8);    /* zinc-400 */
+  --text-3: oklch(55.2% 0.013 285.8);  /* zinc-500 */
+
+  --accent: oklch(98.5% 0 0);               /* primary = zinc-50 */
+  --accent-strong: oklch(100% 0 0);
+  --accent-2: oklch(92% 0 0);
+  --accent-2-strong: oklch(100% 0 0);
+  --accent-text: oklch(87% 0 0);            /* zinc-300 */
+  --accent-soft: oklch(27.4% 0.006 286);    /* zinc-800 */
+  --accent-ring: oklch(92% 0 0 / 0.32);
+
+  --success-bg: oklch(26% 0.035 155);
+  --success-text: oklch(76% 0.11 155);
+  --success-border: oklch(44% 0.08 155);
+  --success-dot: oklch(68% 0.13 155);
+
+  --warning-bg: oklch(26% 0.05 85);
+  --warning-text: oklch(80% 0.11 82);
+  --warning-border: oklch(48% 0.09 80);
+  --warning-dot: oklch(74% 0.13 80);
+
+  --error-bg: oklch(25% 0.05 25);
+  --error-text: oklch(74% 0.13 25);
+  --error-border: oklch(46% 0.12 25);
+  --error-dot: oklch(64% 0.18 25);
+
+  --shadow-sm: 0 1px 0 oklch(27.4% 0.006 286);
+  --shadow-md: 0 1px 0 oklch(27.4% 0.006 286);
+  --shadow-lg: 0 28px 70px -24px oklch(0% 0 0 / 0.7);
+
+  --overlay: oklch(7% 0.004 286 / 0.68);
+  --mono-bg: oklch(12% 0.005 285.8);
+  --mono-text: oklch(88% 0 0);
+
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1.5l4 4 4-4' stroke='%23a1a1aa' stroke-width='1.25' fill='none'/%3E%3C/svg%3E");
+
+  color-scheme: dark;
+}
