@@ -832,6 +832,19 @@ notionPushBtn.addEventListener("click", async () => {
     }
     showStatus(notionPushStatus, message, "success")
 
+    if (data.workerRefresh?.attempted) {
+      const wr = data.workerRefresh
+      const detail = wr.ok
+        ? ` · extension archive refreshed${wr.itemCount ? ` (${wr.itemCount} items)` : ""}`
+        : ` · archive refresh failed (${wr.reason || "unknown"})`
+      const note = document.createElement("span")
+      note.className = "worker-refresh-note"
+      note.style.display = "block"
+      note.style.opacity = "0.75"
+      note.textContent = detail
+      notionPushStatus.appendChild(note)
+    }
+
     if (data.pageUrl) {
       notionPushStatus.querySelectorAll(".status-link").forEach((el) => el.remove())
       const link = document.createElement("a")
@@ -868,7 +881,13 @@ pushBtn.addEventListener("click", async () => {
 
     updateLog(pushLog, (data.log || []).join("\n") + "\n\n" + (data.message || ""))
     if (data.ok) {
-      toast("Assets pushed to GitHub.", "success")
+      const wr = data.workerRefresh
+      if (wr?.attempted && !wr.ok) {
+        updateLog(pushLog, (data.log || []).join("\n") + `\n\nArchive worker refresh failed: ${wr.reason || "unknown"}`)
+        toast("Assets pushed, but archive worker refresh failed — see log.", "warning", 5000)
+      } else {
+        toast("Assets pushed to GitHub." + (wr?.ok ? " Archive refreshed." : ""), "success")
+      }
     } else {
       toast(data.message || "Push failed — see log.", "error", 5000)
     }
@@ -1016,7 +1035,11 @@ fixPushBtn.addEventListener("click", async () => {
       .join("\n")
 
     updateLog(fixLog, `${gitLog}\n\n${data.message || ""}\n\n${purgeLog}`)
-    if (data.ok) toast("Assets pushed & CDN purged.", "success")
+    const wr = data.workerRefresh
+    if (wr?.attempted && !wr.ok) {
+      updateLog(fixLog, `${gitLog}\n\n${data.message || ""}\n\n${purgeLog}\n\nArchive worker refresh failed: ${wr.reason || "unknown"}`)
+    }
+    if (data.ok) toast("Assets pushed & CDN purged." + (wr?.ok ? " Archive refreshed." : ""), "success")
     else toast(data.message || "Push failed — see log.", "error", 5000)
   } catch (err) {
     updateLog(fixLog, `Error: ${err.message}`)

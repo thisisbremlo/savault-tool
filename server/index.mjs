@@ -14,6 +14,7 @@ import { buildNotionFields } from "./notion.mjs"
 import { getDatabaseSchema, mapFieldsToProperties, createNotionPage, getSelectOptions } from "./notion-api.mjs"
 import { purgeJsdelivrUrls } from "./purge.mjs"
 import { cleanUrl, getSlugFromUrl, slugify, makeHoverDescription, addUtm } from "./utils.mjs"
+import { triggerWorkerRefresh } from "./worker-refresh.mjs"
 
 
 const __filename = fileURLToPath(import.meta.url)
@@ -321,7 +322,12 @@ app.post("/api/push", (req, res) => {
         if (!session) return res.status(404).json({ error: "Unknown session." })
 
         const result = pushAssets(ASSET_REPO_DIR, `add ${session.slug} assets`)
-        res.json(result)
+
+        // Fresh CDN URLs only go live after the GitHub commit lands, so
+        // also nudge the archive worker to re-read Notion right away.
+        const workerRefresh = triggerWorkerRefresh()
+
+        res.json({ ...result, workerRefresh })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
@@ -361,7 +367,11 @@ app.post("/api/notion/push", async (req, res) => {
         const { properties, unmatched } = mapFieldsToProperties(fields, schema)
         const page = await createNotionPage(NOTION_TOKEN, NOTION_DATABASE_ID, properties)
 
-        res.json({ ok: true, pageUrl: page.url, unmatched })
+        // New Notion entry exists now — refresh the archive worker so the
+        // extension sees it without waiting for the worker's cron tick.
+        const workerRefresh = await triggerWorkerRefresh()
+
+        res.json({ ok: true, pageUrl: page.url, unmatched, workerRefresh })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
@@ -438,7 +448,10 @@ app.post("/api/fix/push", async (req, res) => {
         ]
         const purgeResults = await purgeJsdelivrUrls(urls)
 
-        res.json({ ...pushResult, purge: purgeResults })
+        // Screenshots changed on the CDN — nudge the archive worker too.
+        const workerRefresh = triggerWorkerRefresh()
+
+        res.json({ ...pushResult, purge: purgeResults, workerRefresh })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }

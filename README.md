@@ -76,6 +76,25 @@ and listed in the status message — nothing fails silently.
 3. Copy the database ID from its URL (the 32-character segment before
    `?v=`) into `NOTION_DATABASE_ID`.
 
+## Archive worker refresh
+
+After a successful Notion push, GitHub push, or fix-entry push, the tool
+automatically calls the savault archive worker's `POST /api/refresh`
+endpoint. The worker re-reads the Notion database, rebuilds its KV cache,
+and the Chrome extension picks the new data up immediately instead of
+waiting for the worker's next scheduled refresh.
+
+**Setup:** add these to `.env` (leave empty to disable the refresh call):
+
+- `SAVAULT_WORKER_URL` — base URL of the worker, e.g.
+  `https://savault-archive-worker.<your-subdomain>.workers.dev` (no
+  trailing `/api/...`, just the origin).
+- `SAVAULT_API_KEY` — the same value as the worker's `SAVAULT_API_KEY`
+  secret; it is sent as the `X-Savault-Key` header.
+
+A failed refresh never blocks publishing — the result is shown in the
+UI (status line / push log) so you can retry manually if needed.
+
 ## Notes / what's still manual
 
 - Sessions are in-memory and per-server-run — if you restart the server
